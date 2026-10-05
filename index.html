@@ -1,0 +1,608 @@
+<title>ZF NUTRIII — Planilha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f5f7fa; --bg2: #ffffff; --bg3: #eef1f6;
+  --border: #dde2eb; --border2: #c8d0dd;
+  --fg: #1a2030; --fg2: #4a5568; --fg3: #8896aa;
+  --green: #1a7f4b; --green-bg: #e6f5ee; --green-lite: #b3dfc8;
+  --blue: #1a5fa8; --blue-bg: #e6f0fb;
+  --gold: #7a5c00; --gold-bg: #fdf5d9;
+  --red: #b91c1c; --red-bg: #fef2f2;
+  --input-bg: #fffbe6; --input-border: #f6c700;
+  --calc-bg: #f0f6ff; --calc-border: #93c5fd;
+  --row-alt: #f8fafc; --row-hover: #eef4ff;
+  --header-bg: #1e293b; --header-fg: #f1f5f9;
+  --tab-active: #1a5fa8; --tab-bg: #e8edf5;
+  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.12);
+  font-family: 'Inter', system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1623; --bg2: #162030; --bg3: #1c2a3e;
+    --border: #263247; --border2: #3a4d65;
+    --fg: #e8eef8; --fg2: #8da5c5; --fg3: #4d6480;
+    --green: #4ade80; --green-bg: #0d2e1a; --green-lite: #1a4e30;
+    --blue: #60a5fa; --blue-bg: #0d1f3c;
+    --gold: #fcd34d; --gold-bg: #1e1605;
+    --red: #f87171; --red-bg: #2d0e0e;
+    --input-bg: #1f1c08; --input-border: #d4a000;
+    --calc-bg: #0e1b30; --calc-border: #2563eb;
+    --row-alt: #131f30; --row-hover: #192a40;
+    --header-bg: #0a0f1a; --header-fg: #cbd5e1;
+    --tab-active: #3b82f6; --tab-bg: #1a2740;
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1623; --bg2: #162030; --bg3: #1c2a3e;
+  --border: #263247; --border2: #3a4d65;
+  --fg: #e8eef8; --fg2: #8da5c5; --fg3: #4d6480;
+  --green: #4ade80; --green-bg: #0d2e1a; --green-lite: #1a4e30;
+  --blue: #60a5fa; --blue-bg: #0d1f3c;
+  --gold: #fcd34d; --gold-bg: #1e1605;
+  --red: #f87171; --red-bg: #2d0e0e;
+  --input-bg: #1f1c08; --input-border: #d4a000;
+  --calc-bg: #0e1b30; --calc-border: #2563eb;
+  --row-alt: #131f30; --row-hover: #192a40;
+  --header-bg: #0a0f1a; --header-fg: #cbd5e1;
+  --tab-active: #3b82f6; --tab-bg: #1a2740;
+  --shadow: 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-size: 13px; line-height: 1.4; }
+
+/* TOPBAR */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px);
+  background: var(--header-bg); color: var(--header-fg);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px; height: 48px; z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  box-shadow: var(--shadow);
+}
+.topbar-logo { font-size: 16px; font-weight: 700; letter-spacing: -.5px; color: #fff; }
+.topbar-logo span { color: #4ade80; }
+.topbar-sub { font-size: 11px; color: #64748b; }
+.topbar-spacer { flex: 1; }
+.topbar-legend { display: flex; gap: 14px; font-size: 11px; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+.theme-btn {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+  color: var(--header-fg); padding: 4px 10px; border-radius: 4px; cursor: pointer;
+  font-size: 11px; font-family: inherit;
+}
+.theme-btn:hover { background: rgba(255,255,255,.2); }
+
+/* TAB NAV */
+.tab-nav {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; overflow-x: auto; padding: 0 16px;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 10px 16px; font-size: 12px; font-weight: 500; cursor: pointer;
+  border: none; background: none; color: var(--fg2); white-space: nowrap;
+  border-bottom: 2px solid transparent; transition: all .15s;
+  font-family: inherit;
+}
+.tab-btn:hover { color: var(--fg); background: var(--row-hover); }
+.tab-btn.active { color: var(--tab-active); border-bottom-color: var(--tab-active); font-weight: 600; }
+
+/* CONTENT */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.sheet-wrap { padding: 16px; overflow-x: auto; }
+
+/* TABLES */
+table.sheet { border-collapse: collapse; width: 100%; min-width: max-content; }
+table.sheet th {
+  background: var(--header-bg); color: var(--header-fg);
+  padding: 7px 10px; font-size: 11px; font-weight: 600;
+  text-align: left; white-space: nowrap; letter-spacing: .3px;
+  border: 1px solid rgba(255,255,255,.06);
+  position: sticky; top: 48px;
+}
+table.sheet td {
+  padding: 5px 10px; border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border); white-space: nowrap;
+}
+table.sheet tr:nth-child(even) td { background: var(--row-alt); }
+table.sheet tr:hover td { background: var(--row-hover); }
+table.sheet td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; }
+table.sheet td.center { text-align: center; }
+
+/* INPUT CELLS */
+td.editable {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
+}
+td.editable input {
+  background: transparent; border: none; outline: none;
+  color: var(--fg); font: inherit; font-family: 'JetBrains Mono', monospace;
+  text-align: right; width: 100%; min-width: 70px;
+  font-size: 12px;
+}
+td.calc-cell { background: var(--calc-bg) !important; color: var(--blue); font-style: italic; }
+td.zero { color: var(--fg3); }
+
+/* SECTION HEADERS */
+tr.section-hdr td {
+  background: var(--bg3) !important;
+  font-weight: 700; font-size: 12px; color: var(--fg2);
+  padding: 8px 10px; letter-spacing: .5px;
+  border-top: 2px solid var(--border2) !important;
+}
+
+/* BADGES */
+.badge {
+  display: inline-block; padding: 2px 7px; border-radius: 10px;
+  font-size: 10px; font-weight: 600; letter-spacing: .3px;
+}
+.badge-max { background: var(--gold-bg); color: var(--gold); }
+.badge-minerais { background: var(--blue-bg); color: var(--blue); }
+.badge-racoes { background: var(--green-bg); color: var(--green); }
+.badge-nc { background: #f0e6ff; color: #7c3aed; }
+.badge-np { background: #ffe6f0; color: #be185d; }
+
+/* SUMMARY CARDS */
+.kpi-row { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px; }
+.kpi-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; min-width: 160px;
+  flex: 1; box-shadow: var(--shadow);
+}
+.kpi-label { font-size: 11px; color: var(--fg3); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+.kpi-val { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.kpi-val.green { color: var(--green); }
+.kpi-val.blue { color: var(--blue); }
+.kpi-sub { font-size: 11px; color: var(--fg3); margin-top: 2px; }
+
+/* CHANGED INDICATOR */
+.changed { outline: 2px solid #f59e0b !important; }
+.save-btn {
+  background: var(--green); color: #fff; border: none;
+  padding: 6px 16px; border-radius: 5px; cursor: pointer;
+  font-family: inherit; font-weight: 600; font-size: 12px;
+  margin: 8px 16px;
+}
+.save-btn:hover { opacity: .9; }
+.info-bar {
+  background: var(--blue-bg); border-left: 3px solid var(--blue);
+  padding: 8px 16px; font-size: 11px; color: var(--fg2);
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* PRODUCT SECTION in formula tabs */
+.product-header {
+  background: var(--bg3); padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); border-top: 2px solid var(--border2);
+}
+.product-title { font-weight: 700; font-size: 13px; }
+.product-meta { font-size: 11px; color: var(--fg3); }
+.product-cost { font-size: 13px; font-weight: 600; color: var(--green); margin-left: auto; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+
+<div class="topbar">
+  <div class="topbar-logo">ZF <span>NUTRIII</span></div>
+  <div class="topbar-sub">Sistema de Produção</div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#f6c700"></div><span>Entrada</span></div>
+    <div class="legend-dot" style="background:#93c5fd"></div><span style="font-size:11px">Calculado</span>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()">🌓 Tema</button>
+</div>
+
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="producao">📦 PRODUÇÃO</button>
+  <button class="tab-btn" data-tab="prod_rc">🏭 R. CASCALHEIRA</button>
+  <button class="tab-btn" data-tab="prod_of">🏭 OURO FINO</button>
+  <button class="tab-btn" data-tab="aba_p">📋 ABA P (Preços)</button>
+  <button class="tab-btn" data-tab="resumo">💰 RESUMO</button>
+  <button class="tab-btn" data-tab="minerais">🧪 MINERAIS</button>
+  <button class="tab-btn" data-tab="racoes">🌾 RAÇÕES</button>
+  <button class="tab-btn" data-tab="nc">⚗️ NC</button>
+  <button class="tab-btn" data-tab="max">💊 MAX</button>
+  <button class="tab-btn" data-tab="np">🔬 NP</button>
+</div>
+
+<!-- KPI Summary always visible -->
+<div class="kpi-row" id="kpiRow"></div>
+
+<!-- PRODUÇÃO -->
+<div class="tab-content active" id="tab-producao">
+  <div class="info-bar">ℹ️ Altere as quantidades (SC = sacos) para recalcular os totais. Clique no campo e digite o novo valor.</div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-producao"></table>
+  </div>
+</div>
+
+<!-- PROD R CASCALHEIRA -->
+<div class="tab-content" id="tab-prod_rc">
+  <div class="info-bar">ℹ️ Produção destinada a <strong>R. Cascalheira</strong> — altere quantidades por produto.</div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-prod_rc"></table>
+  </div>
+</div>
+
+<!-- PROD OURO FINO -->
+<div class="tab-content" id="tab-prod_of">
+  <div class="info-bar">ℹ️ Produção destinada a <strong>Ouro Fino</strong> — altere quantidades por produto.</div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-prod_of"></table>
+  </div>
+</div>
+
+<!-- ABA P -->
+<div class="tab-content" id="tab-aba_p">
+  <div class="info-bar">ℹ️ Altere o <strong>Preço R$/kg</strong> de cada ingrediente. Preço c/crédito = Preço × 90,75% (desconto PIS/COFINS 9,25%).</div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-aba_p"></table>
+  </div>
+</div>
+
+<!-- RESUMO -->
+<div class="tab-content" id="tab-resumo">
+  <div class="info-bar">ℹ️ Custo recalculado com base nos preços da aba P. Clique em "Atualizar" após editar preços.</div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-resumo"></table>
+  </div>
+</div>
+
+<!-- MINERAIS -->
+<div class="tab-content" id="tab-minerais">
+  <div id="content-minerais"></div>
+</div>
+<!-- RAÇÕES -->
+<div class="tab-content" id="tab-racoes">
+  <div id="content-racoes"></div>
+</div>
+<!-- NC -->
+<div class="tab-content" id="tab-nc">
+  <div id="content-nc"></div>
+</div>
+<!-- MAX -->
+<div class="tab-content" id="tab-max">
+  <div id="content-max"></div>
+</div>
+<!-- NP -->
+<div class="tab-content" id="tab-np">
+  <div id="content-np"></div>
+</div>
+
+<script>
+// ===== EMBEDDED DATA =====
+</script>
+<script src="data.js"></script>
+<script>
+// ===== STATE =====
+const state = {
+  ingredients: JSON.parse(JSON.stringify(ZF_DATA.ingredients)),
+  producao_total: JSON.parse(JSON.stringify(ZF_DATA.producao_total)),
+  producao_rc: JSON.parse(JSON.stringify(ZF_DATA.producao_rc)),
+  producao_of: JSON.parse(JSON.stringify(ZF_DATA.producao_of)),
+  resumo: JSON.parse(JSON.stringify(ZF_DATA.resumo)),
+  products: ZF_DATA.products
+};
+
+// Price lookup: normalize ingredient name → price_c
+function buildIngPriceLookup() {
+  const map = {};
+  const norm = s => s.toUpperCase().replace(/\s+/g,' ').trim()
+    .replace(/[ÃÂÁÀäáàâã]/g,'A').replace(/[ÊÉÈêéè]/g,'E')
+    .replace(/[ÍÌÎíìî]/g,'I').replace(/[ÓÒÔÕóòôõ]/g,'O')
+    .replace(/[ÚÙÛúùû]/g,'U').replace(/[Çç]/g,'C')
+    .replace(/[^\w\s%]/g,'').trim();
+
+  state.ingredients.forEach(ing => {
+    const k = norm(ing.name);
+    map[k] = ing.price * 0.9075;
+    // Also index first two words
+    const words = k.split(' ').slice(0, 2).join(' ');
+    if (!map[words]) map[words] = ing.price * 0.9075;
+  });
+  return {map, norm};
+}
+
+function calcProductCost(prodName) {
+  const prod = state.products[prodName];
+  if (!prod || !prod.composition) return null;
+  const {map, norm} = buildIngPriceLookup();
+  let total = 0;
+  let matched = 0;
+  prod.composition.forEach(ing => {
+    const k = norm(ing.name);
+    // Try exact, then first word, then partial
+    let price = map[k];
+    if (price === undefined) {
+      const firstWord = k.split(' ')[0];
+      // Find best match
+      for (const mk of Object.keys(map)) {
+        if (mk.startsWith(firstWord)) { price = map[mk]; break; }
+      }
+    }
+    if (price !== undefined) {
+      total += (ing.kg_per_1000 / 1000) * price;
+      matched++;
+    }
+  });
+  // total is per kg, convert to per sac (30kg)
+  return total * 30;
+}
+
+// ===== FORMATTING =====
+const fmt = {
+  sc: n => n ? n.toLocaleString('pt-BR') : '0',
+  kg: n => n ? n.toLocaleString('pt-BR', {maximumFractionDigits:1}) : '0',
+  price: n => n ? n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'}) : 'R$ 0,00',
+  pct: n => n ? n.toLocaleString('pt-BR', {style:'percent', minimumFractionDigits:2}) : '0%',
+  n2: n => n ? n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '0,00',
+  n4: n => n ? n.toLocaleString('pt-BR', {minimumFractionDigits:4, maximumFractionDigits:4}) : '0,0000'
+};
+
+function abaBadge(aba) {
+  const cls = {MAX:'badge-max',MINERAIS:'badge-minerais','RAÇÕES':'badge-racoes',NC:'badge-nc',NP:'badge-np'}[aba] || 'badge-minerais';
+  return `<span class="badge ${cls}">${aba}</span>`;
+}
+
+// ===== KPI =====
+function renderKPIs() {
+  const totalProd = state.producao_total.reduce((s,p) => s + (p.qtd||0), 0);
+  const rcTotal = state.producao_rc.reduce((s,p) => s + (p.qtd||0), 0);
+  const ofTotal = state.producao_of.reduce((s,p) => s + (p.qtd||0), 0);
+  const prodCount = state.producao_total.filter(p => p.qtd > 0).length;
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total Produção</div>
+      <div class="kpi-val green">${fmt.sc(totalProd)}<small style="font-size:13px"> SC</small></div>
+      <div class="kpi-sub">${prodCount} produtos ativos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">R. Cascalheira</div>
+      <div class="kpi-val blue">${fmt.sc(rcTotal)}<small style="font-size:13px"> SC</small></div>
+      <div class="kpi-sub">${state.producao_rc.filter(p=>p.qtd>0).length} produtos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ouro Fino</div>
+      <div class="kpi-val blue">${fmt.sc(ofTotal)}<small style="font-size:13px"> SC</small></div>
+      <div class="kpi-sub">${state.producao_of.filter(p=>p.qtd>0).length} produtos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ingredientes</div>
+      <div class="kpi-val">${state.ingredients.filter(i=>i.price>0).length}</div>
+      <div class="kpi-sub">de ${state.ingredients.length} ativos</div>
+    </div>
+  `;
+}
+
+// ===== PRODUÇÃO TABLE =====
+function renderProducao(key, tableId) {
+  const arr = state[key];
+  const tbl = document.getElementById(tableId);
+
+  const rcMap = {}, ofMap = {};
+  state.producao_rc.forEach(p => rcMap[p.n] = p.qtd);
+  state.producao_of.forEach(p => ofMap[p.n] = p.qtd);
+
+  let html = `<thead><tr>
+    <th>#</th><th>PRODUTO</th><th>LINHA</th>
+    <th>QTD TOTAL (SC)</th>
+    ${key==='producao_total'?'<th>R. CASCALHEIRA</th><th>OURO FINO</th>':''}
+    <th>CUSTO/SACO</th><th>VALOR TOTAL</th>
+  </tr></thead><tbody>`;
+
+  let lastAba = '';
+  arr.forEach(p => {
+    if (p.aba !== lastAba) {
+      html += `<tr class="section-hdr"><td colspan="8">📁 ${p.aba}</td></tr>`;
+      lastAba = p.aba;
+    }
+    const custo = state.resumo.find(r => r.produto.includes(p.produto.split(' ')[1] || p.produto))?.custo || 0;
+    const total_val = (p.qtd||0) * custo;
+    const zeroClass = (!p.qtd || p.qtd===0) ? ' zero' : '';
+
+    html += `<tr>
+      <td class="num center">${p.n}</td>
+      <td style="font-weight:500">${p.produto}</td>
+      <td class="center">${abaBadge(p.aba)}</td>
+      <td class="editable num">
+        <input type="number" min="0" value="${p.qtd||0}"
+          onchange="updateQtd('${key}',${p.n-1},this.value)"
+          onblur="this.parentElement.classList.remove('changed')"
+          oninput="this.parentElement.classList.add('changed')">
+      </td>
+      ${key==='producao_total'?`
+        <td class="num${zeroClass}">${fmt.sc(rcMap[p.n]||0)}</td>
+        <td class="num${zeroClass}">${fmt.sc(ofMap[p.n]||0)}</td>
+      `:''}
+      <td class="num calc-cell${zeroClass}">${custo ? 'R$ '+fmt.n2(custo) : '—'}</td>
+      <td class="num calc-cell${zeroClass}">${total_val ? fmt.price(total_val) : '—'}</td>
+    </tr>`;
+  });
+
+  tbl.innerHTML = html + '</tbody>';
+}
+
+function updateQtd(key, idx, val) {
+  state[key][idx].qtd = parseInt(val)||0;
+  renderKPIs();
+  renderProducao('producao_total', 'tbl-producao');
+}
+
+// ===== ABA P TABLE =====
+function renderAbaP() {
+  const tbl = document.getElementById('tbl-aba_p');
+  let html = `<thead><tr>
+    <th>#</th><th>COD</th><th>INGREDIENTE</th>
+    <th>💰 PREÇO R$/kg (ENTRADA)</th>
+    <th>C/ CRÉDITO PIS/COFINS</th>
+    <th>TOTAL RC (KG)</th><th>TOTAL OF (KG)</th>
+    <th>TOTAL GERAL (KG)</th><th>VALOR TOTAL (R$)</th>
+  </tr></thead><tbody>`;
+
+  state.ingredients.forEach((ing, i) => {
+    const priceC = ing.price * 0.9075;
+    const zc = ing.price === 0 ? ' zero' : '';
+    html += `<tr>
+      <td class="num center">${ing.idx}</td>
+      <td class="num">${ing.code||'—'}</td>
+      <td style="font-weight:500">${ing.name}</td>
+      <td class="editable num">
+        <input type="number" min="0" step="0.001" value="${ing.price}"
+          oninput="updatePrice(${i},this.value); this.parentElement.classList.add('changed')"
+          onblur="this.parentElement.classList.remove('changed')">
+      </td>
+      <td class="num calc-cell" id="price_c_${i}">${fmt.n4(priceC)}</td>
+      <td class="num${zc}">${fmt.kg(ing.total_rc)}</td>
+      <td class="num${zc}">${fmt.kg(ing.total_of)}</td>
+      <td class="num${zc}">${fmt.kg(ing.total_kg)}</td>
+      <td class="num${zc}">${ing.total_val ? fmt.price(ing.total_val) : '—'}</td>
+    </tr>`;
+  });
+
+  tbl.innerHTML = html + '</tbody>';
+}
+
+function updatePrice(idx, val) {
+  state.ingredients[idx].price = parseFloat(val)||0;
+  const priceC = state.ingredients[idx].price * 0.9075;
+  const el = document.getElementById(`price_c_${idx}`);
+  if (el) el.textContent = fmt.n4(priceC);
+  // Update resumo recalc hint
+  document.getElementById('tbl-resumo').querySelectorAll('.recalc-hint').forEach(e=>e.style.display='');
+}
+
+// ===== RESUMO TABLE =====
+function renderResumo() {
+  const tbl = document.getElementById('tbl-resumo');
+  let html = `<thead><tr>
+    <th>PRODUTO</th><th>LINHA</th>
+    <th>CUSTO/SACO (R$)</th><th>PREÇO SUGERIDO</th><th>MARGEM</th>
+  </tr></thead><tbody>`;
+
+  let lastLinha = '';
+  state.resumo.forEach(item => {
+    if (item.linha !== lastLinha) {
+      html += `<tr class="section-hdr"><td colspan="5">📌 ${item.linha}</td></tr>`;
+      lastLinha = item.linha;
+    }
+    const margPct = item.margem ? parseFloat(item.margem.replace('%',''))/100 : 0;
+    const margColor = margPct >= 0.6 ? 'color:var(--green)' : margPct >= 0.5 ? 'color:var(--gold)' : 'color:var(--red)';
+    html += `<tr>
+      <td style="font-weight:500">${item.produto}</td>
+      <td>${item.linha}</td>
+      <td class="num" style="color:var(--blue);font-weight:600">R$ ${fmt.n2(item.custo)}</td>
+      <td class="num" style="font-weight:600">${item.preco ? 'R$ '+fmt.n2(item.preco) : '—'}</td>
+      <td class="num" style="font-weight:700;${margColor}">${item.margem||'—'}</td>
+    </tr>`;
+  });
+
+  tbl.innerHTML = html + '</tbody>';
+}
+
+// ===== PRODUCT FORMULA TABS =====
+function renderProductTab(tabKey, targetId) {
+  const container = document.getElementById(targetId);
+  const products = Object.entries(state.products).filter(([_,p]) => p.tab === tabKey);
+
+  if (!products.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--fg3)">Nenhum produto encontrado.</div>';
+    return;
+  }
+
+  let html = '';
+  products.forEach(([name, prod]) => {
+    const custo = calcProductCost(name);
+    html += `<div class="product-header">
+      <div class="product-title">🧪 ${name}</div>
+      <div class="product-meta">${prod.bags} sacos / 1.000 kg &nbsp;·&nbsp; ${prod.composition.length} ingredientes</div>
+      <div class="product-cost">${custo ? 'R$ '+fmt.n2(custo)+' / saco' : 'Custo calculado na aba P'}</div>
+    </div>
+    <div class="sheet-wrap">
+      <table class="sheet">
+        <thead><tr>
+          <th>INGREDIENTE</th><th>KG / 1.000 KG</th><th>% DA FÓRMULA</th><th>PREÇO C/CRÉD.</th><th>CUSTO/SACO</th>
+        </tr></thead><tbody>`;
+
+    const totalKg = prod.composition.reduce((s,c) => s + c.kg_per_1000, 0);
+    const {map, norm} = buildIngPriceLookup();
+
+    prod.composition.forEach(ing => {
+      const k = norm(ing.name);
+      let price = map[k];
+      if (price === undefined) {
+        const fw = k.split(' ')[0];
+        for (const mk of Object.keys(map)) { if (mk.startsWith(fw)) { price = map[mk]; break; } }
+      }
+      const custoIng = price !== undefined ? (ing.kg_per_1000/1000)*price*30 : null;
+      const pct = totalKg > 0 ? ing.kg_per_1000/totalKg*100 : 0;
+
+      html += `<tr>
+        <td>${ing.name}</td>
+        <td class="num">${fmt.kg(ing.kg_per_1000)}</td>
+        <td class="num">${pct.toFixed(1)}%</td>
+        <td class="num calc-cell">${price !== undefined ? fmt.n4(price) : '—'}</td>
+        <td class="num calc-cell">${custoIng !== null ? 'R$ '+fmt.n2(custoIng) : '—'}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ===== TABS =====
+document.getElementById('tabNav').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+
+  // Lazy render
+  if (tab === 'minerais' && !document.getElementById('content-minerais').children.length)
+    renderProductTab('MINERAIS', 'content-minerais');
+  if (tab === 'racoes' && !document.getElementById('content-racoes').children.length)
+    renderProductTab('RACOES', 'content-racoes');
+  if (tab === 'nc' && !document.getElementById('content-nc').children.length)
+    renderProductTab('NC', 'content-nc');
+  if (tab === 'max' && !document.getElementById('content-max').children.length)
+    renderProductTab('MAX', 'content-max');
+  if (tab === 'np' && !document.getElementById('content-np').children.length)
+    renderProductTab('NP', 'content-np');
+});
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const cur = root.getAttribute('data-theme');
+  root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+}
+
+// ===== INIT =====
+renderKPIs();
+renderProducao('producao_total', 'tbl-producao');
+renderProducao('producao_rc', 'tbl-prod_rc');
+renderProducao('producao_of', 'tbl-prod_of');
+renderAbaP();
+renderResumo();
+</script>
