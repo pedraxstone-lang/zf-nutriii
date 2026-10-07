@@ -1,4 +1,5 @@
 <title>ZF NUTRIII — Planilha</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -192,6 +193,65 @@ tr.section-hdr td {
 .product-meta { font-size: 11px; color: var(--fg3); }
 .product-cost { font-size: 13px; font-weight: 600; color: var(--green); margin-left: auto; }
 
+/* AGENDA */
+.agenda-toolbar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  padding: 12px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+.agenda-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 600; transition: opacity .15s;
+}
+.agenda-btn:hover { opacity: .85; }
+.btn-add { background: var(--green); color: #fff; }
+.btn-export { background: var(--blue); color: #fff; }
+.btn-import { background: var(--bg3); color: var(--fg); border: 1px solid var(--border2); }
+.agenda-filters { display: flex; gap: 6px; margin-left: auto; }
+.filter-chip {
+  padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--fg2); font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+}
+.filter-chip.active { border-color: transparent; color: #fff; }
+.filter-chip.f-all.active { background: #475569; }
+.filter-chip.f-produzir.active { background: #1d4ed8; }
+.filter-chip.f-produzindo.active { background: #b45309; }
+.filter-chip.f-finalizado.active { background: #15803d; }
+.status-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer;
+  border: none; font-family: inherit; transition: transform .1s;
+}
+.status-badge:hover { transform: scale(1.05); }
+.s-produzir { background: #dbeafe; color: #1d4ed8; }
+.s-produzindo { background: #fef3c7; color: #b45309; }
+.s-finalizado { background: #dcfce7; color: #15803d; }
+[data-theme="dark"] .s-produzir { background: #1e3a5f; color: #93c5fd; }
+[data-theme="dark"] .s-produzindo { background: #3d2900; color: #fcd34d; }
+[data-theme="dark"] .s-finalizado { background: #052e16; color: #4ade80; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .s-produzir { background: #1e3a5f; color: #93c5fd; }
+  :root:not([data-theme="light"]) .s-produzindo { background: #3d2900; color: #fcd34d; }
+  :root:not([data-theme="light"]) .s-finalizado { background: #052e16; color: #4ade80; }
+}
+.agenda-empty {
+  text-align: center; padding: 48px 16px; color: var(--fg3); font-size: 14px;
+}
+.agenda-stats {
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px;
+  background: var(--bg3); border-bottom: 1px solid var(--border);
+  font-size: 12px; align-items: center;
+}
+.astat { display: flex; align-items: center; gap: 5px; }
+.astat-dot { width: 8px; height: 8px; border-radius: 50%; }
+.del-btn {
+  background: none; border: none; color: var(--fg3); cursor: pointer;
+  font-size: 14px; padding: 2px 6px; border-radius: 4px; font-family: inherit;
+  transition: all .15s;
+}
+.del-btn:hover { background: var(--red-bg); color: var(--red); }
+
 /* scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -215,6 +275,7 @@ tr.section-hdr td {
   <button class="tab-btn" data-tab="prod_of">🏭 OURO FINO</button>
   <button class="tab-btn" data-tab="aba_p">📋 ABA P (Preços)</button>
   <button class="tab-btn" data-tab="resumo">💰 RESUMO</button>
+  <button class="tab-btn" data-tab="agenda">📅 AGENDA</button>
   <button class="tab-btn" data-tab="minerais">🧪 MINERAIS</button>
   <button class="tab-btn" data-tab="racoes">🌾 RAÇÕES</button>
   <button class="tab-btn" data-tab="nc">⚗️ NC</button>
@@ -265,6 +326,37 @@ tr.section-hdr td {
   </div>
 </div>
 
+<!-- AGENDA -->
+<div class="tab-content" id="tab-agenda">
+  <div class="agenda-toolbar">
+    <button class="agenda-btn btn-add" onclick="addAgendaRow()">＋ Nova Ordem</button>
+    <button class="agenda-btn btn-export" onclick="exportAgenda()">⬇ Exportar Excel</button>
+    <label class="agenda-btn btn-import">
+      ⬆ Importar Excel
+      <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this)">
+    </label>
+    <div class="agenda-filters">
+      <button class="filter-chip f-all active" onclick="setFilter('all',this)">Todos</button>
+      <button class="filter-chip f-produzir" onclick="setFilter('A Produzir',this)">A Produzir</button>
+      <button class="filter-chip f-produzindo" onclick="setFilter('Produzindo',this)">Produzindo</button>
+      <button class="filter-chip f-finalizado" onclick="setFilter('Finalizado',this)">Finalizado</button>
+    </div>
+  </div>
+  <div id="agendaStats" class="agenda-stats"></div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-agenda">
+      <thead><tr>
+        <th>#</th><th>CLIENTE</th><th>PRODUTO</th>
+        <th>QTD (SC)</th><th>DATA PRODUÇÃO</th><th>STATUS</th><th></th>
+      </tr></thead>
+      <tbody id="agendaBody"></tbody>
+    </table>
+    <div id="agendaEmpty" class="agenda-empty" hidden>
+      Nenhuma ordem de produção. Clique em <strong>＋ Nova Ordem</strong> para começar.
+    </div>
+  </div>
+</div>
+
 <!-- MINERAIS -->
 <div class="tab-content" id="tab-minerais">
   <div id="content-minerais"></div>
@@ -292,13 +384,29 @@ tr.section-hdr td {
 <script src="data.js"></script>
 <script>
 // ===== STATE =====
+let agendaFilter = 'all';
+let agendaNextId = 1;
+
+function loadAgendaFromStorage() {
+  try {
+    const raw = localStorage.getItem('zf_agenda');
+    if (raw) {
+      const data = JSON.parse(raw);
+      agendaNextId = data.nextId || 1;
+      return data.rows || [];
+    }
+  } catch(e) {}
+  return [];
+}
+
 const state = {
   ingredients: JSON.parse(JSON.stringify(ZF_DATA.ingredients)),
   producao_total: JSON.parse(JSON.stringify(ZF_DATA.producao_total)),
   producao_rc: JSON.parse(JSON.stringify(ZF_DATA.producao_rc)),
   producao_of: JSON.parse(JSON.stringify(ZF_DATA.producao_of)),
   resumo: JSON.parse(JSON.stringify(ZF_DATA.resumo)),
-  products: ZF_DATA.products
+  products: ZF_DATA.products,
+  agenda: loadAgendaFromStorage()
 };
 
 // Price lookup: normalize ingredient name → price_c
@@ -368,6 +476,11 @@ function renderKPIs() {
   const ofTotal = state.producao_of.reduce((s,p) => s + (p.qtd||0), 0);
   const prodCount = state.producao_total.filter(p => p.qtd > 0).length;
 
+  // Agenda: only A Produzir + Produzindo count
+  const activeOrders = state.agenda.filter(r => r.status !== 'Finalizado');
+  const agendaActive = activeOrders.reduce((s,r) => s + (parseInt(r.qtd)||0), 0);
+  const agendaCount = activeOrders.length;
+
   document.getElementById('kpiRow').innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label">Total Produção</div>
@@ -384,10 +497,10 @@ function renderKPIs() {
       <div class="kpi-val blue">${fmt.sc(ofTotal)}<small style="font-size:13px"> SC</small></div>
       <div class="kpi-sub">${state.producao_of.filter(p=>p.qtd>0).length} produtos</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Ingredientes</div>
-      <div class="kpi-val">${state.ingredients.filter(i=>i.price>0).length}</div>
-      <div class="kpi-sub">de ${state.ingredients.length} ativos</div>
+    <div class="kpi-card" style="cursor:pointer" onclick="switchTab('agenda')">
+      <div class="kpi-label">📅 Agenda Ativa</div>
+      <div class="kpi-val" style="color:var(--gold)">${fmt.sc(agendaActive)}<small style="font-size:13px"> SC</small></div>
+      <div class="kpi-sub">${agendaCount} ordem${agendaCount!==1?'ns':''} em andamento</div>
     </div>
   `;
 }
@@ -408,10 +521,11 @@ function renderProducao(key, tableId) {
     <th>CUSTO/SACO</th><th>VALOR TOTAL</th>
   </tr></thead><tbody>`;
 
+  const colCount = key === 'producao_total' ? 8 : 6;
   let lastAba = '';
   arr.forEach(p => {
     if (p.aba !== lastAba) {
-      html += `<tr class="section-hdr"><td colspan="8">📁 ${p.aba}</td></tr>`;
+      html += `<tr class="section-hdr"><td colspan="${colCount}">📁 ${p.aba}</td></tr>`;
       lastAba = p.aba;
     }
     const custo = state.resumo.find(r => r.produto.includes(p.produto.split(' ')[1] || p.produto))?.custo || 0;
@@ -569,6 +683,240 @@ function renderProductTab(tabKey, targetId) {
   container.innerHTML = html;
 }
 
+// ===== AGENDA =====
+function saveAgenda() {
+  try {
+    localStorage.setItem('zf_agenda', JSON.stringify({nextId: agendaNextId, rows: state.agenda}));
+  } catch(e) {}
+}
+
+function statusClass(s) {
+  if (s === 'A Produzir') return 's-produzir';
+  if (s === 'Produzindo') return 's-produzindo';
+  return 's-finalizado';
+}
+
+function nextStatus(s) {
+  if (s === 'A Produzir') return 'Produzindo';
+  if (s === 'Produzindo') return 'Finalizado';
+  return 'A Produzir';
+}
+
+function renderAgenda() {
+  const rows = agendaFilter === 'all'
+    ? state.agenda
+    : state.agenda.filter(r => r.status === agendaFilter);
+
+  const tbody = document.getElementById('agendaBody');
+  const empty = document.getElementById('agendaEmpty');
+
+  const total = state.agenda.length;
+  const nProduzir = state.agenda.filter(r => r.status === 'A Produzir').length;
+  const nProduzindo = state.agenda.filter(r => r.status === 'Produzindo').length;
+  const nFinalizado = state.agenda.filter(r => r.status === 'Finalizado').length;
+  const scAtivos = state.agenda.filter(r => r.status !== 'Finalizado').reduce((s,r) => s + (parseInt(r.qtd)||0), 0);
+
+  document.getElementById('agendaStats').innerHTML = `
+    <span style="font-weight:600;color:var(--fg2)">Total: ${total} ordens</span>
+    <span style="color:var(--border2)">|</span>
+    <span class="astat"><span class="astat-dot" style="background:#1d4ed8"></span>${nProduzir} A Produzir</span>
+    <span class="astat"><span class="astat-dot" style="background:#b45309"></span>${nProduzindo} Produzindo</span>
+    <span class="astat"><span class="astat-dot" style="background:#15803d"></span>${nFinalizado} Finalizado</span>
+    <span style="color:var(--border2)">|</span>
+    <span style="font-weight:600;color:var(--gold)">⚡ ${fmt.sc(scAtivos)} SC ativos (excl. finalizados)</span>
+  `;
+
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+
+  // Get product names for datalist
+  const prodNames = Object.keys(state.products);
+
+  let html = '';
+  rows.forEach(row => {
+    html += `<tr id="row-${row.id}">
+      <td class="num center" style="color:var(--fg3);font-size:11px">${row.id}</td>
+      <td class="editable" style="min-width:140px">
+        <input type="text" value="${escHtml(row.cliente)}" placeholder="Nome do cliente"
+          onchange="updateAgendaField(${row.id},'cliente',this.value)"
+          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px">
+      </td>
+      <td class="editable" style="min-width:160px">
+        <input type="text" value="${escHtml(row.produto)}" placeholder="Produto" list="prod-datalist"
+          onchange="updateAgendaField(${row.id},'produto',this.value)"
+          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px">
+      </td>
+      <td class="editable num" style="min-width:80px">
+        <input type="number" min="0" value="${row.qtd||''}" placeholder="0"
+          onchange="updateAgendaField(${row.id},'qtd',this.value)"
+          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;text-align:right;width:100%;padding:0 2px">
+      </td>
+      <td class="editable" style="min-width:130px">
+        <input type="date" value="${row.data||''}"
+          onchange="updateAgendaField(${row.id},'data',this.value)"
+          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px">
+      </td>
+      <td class="center">
+        <button class="status-badge ${statusClass(row.status)}"
+          onclick="cycleStatus(${row.id})" title="Clique para avançar status">
+          ${row.status}
+        </button>
+      </td>
+      <td class="center">
+        <button class="del-btn" onclick="deleteAgendaRow(${row.id})" title="Remover">✕</button>
+      </td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html + `<datalist id="prod-datalist">${prodNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist>`;
+  renderKPIs();
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addAgendaRow() {
+  state.agenda.push({
+    id: agendaNextId++,
+    cliente: '',
+    produto: '',
+    qtd: 0,
+    data: '',
+    status: 'A Produzir'
+  });
+  saveAgenda();
+  renderAgenda();
+  // Focus the last cliente input
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#agendaBody tr');
+    if (rows.length) {
+      const inp = rows[rows.length-1].querySelector('input');
+      if (inp) inp.focus();
+    }
+  }, 50);
+}
+
+function updateAgendaField(id, field, value) {
+  const row = state.agenda.find(r => r.id === id);
+  if (row) {
+    row[field] = field === 'qtd' ? (parseInt(value)||0) : value;
+    saveAgenda();
+    renderKPIs();
+  }
+}
+
+function cycleStatus(id) {
+  const row = state.agenda.find(r => r.id === id);
+  if (!row) return;
+  row.status = nextStatus(row.status);
+  saveAgenda();
+  renderAgenda();
+}
+
+function deleteAgendaRow(id) {
+  state.agenda = state.agenda.filter(r => r.id !== id);
+  saveAgenda();
+  renderAgenda();
+}
+
+function setFilter(f, btn) {
+  agendaFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderAgenda();
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-'+tabId);
+  });
+  if (tabId === 'agenda') renderAgenda();
+}
+
+function exportAgenda() {
+  if (!window.XLSX) { alert('SheetJS não carregado ainda. Aguarde e tente novamente.'); return; }
+  const rows = state.agenda.map(r => ({
+    ID: r.id,
+    Cliente: r.cliente,
+    Produto: r.produto,
+    'Qtd (SC)': r.qtd||0,
+    'Data Produção': r.data || '',
+    Status: r.status
+  }));
+  // Add empty template rows if no data
+  if (!rows.length) rows.push({ID:'',Cliente:'',Produto:'','Qtd (SC)':0,'Data Produção':'',Status:'A Produzir'});
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:6},{wch:22},{wch:30},{wch:10},{wch:16},{wch:14}];
+
+  // Style header row
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Agenda');
+
+  // Add products reference sheet
+  const prodRows = Object.keys(state.products).map(n => ({Produto: n, Linha: state.products[n].tab}));
+  const ws2 = XLSX.utils.json_to_sheet(prodRows);
+  ws2['!cols'] = [{wch:36},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Produtos (referência)');
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `ZF_Agenda_${today}.xlsx`);
+}
+
+function importAgenda(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!window.XLSX) { alert('SheetJS não carregado. Aguarde e tente novamente.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+      let added = 0;
+      rows.forEach(r => {
+        // Update existing row by ID, or add new
+        const id = parseInt(r.ID);
+        const existing = id ? state.agenda.find(a => a.id === id) : null;
+        const status = ['A Produzir','Produzindo','Finalizado'].includes(r.Status) ? r.Status : 'A Produzir';
+        const data = r['Data Produção'] ? String(r['Data Produção']).trim() : '';
+        if (existing) {
+          existing.cliente = r.Cliente||existing.cliente;
+          existing.produto = r.Produto||existing.produto;
+          existing.qtd = parseInt(r['Qtd (SC)'])||existing.qtd;
+          existing.data = data||existing.data;
+          existing.status = status;
+        } else {
+          state.agenda.push({
+            id: agendaNextId++,
+            cliente: r.Cliente||'',
+            produto: r.Produto||'',
+            qtd: parseInt(r['Qtd (SC)'])||0,
+            data: data,
+            status
+          });
+          added++;
+        }
+      });
+      saveAgenda();
+      renderAgenda();
+      alert(`Importado: ${rows.length} linha(s) processada(s), ${added} nova(s) adicionada(s).`);
+    } catch(err) {
+      alert('Erro ao importar: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  input.value = '';
+}
+
 // ===== TABS =====
 document.getElementById('tabNav').addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn');
@@ -580,6 +928,7 @@ document.getElementById('tabNav').addEventListener('click', e => {
   document.getElementById('tab-'+tab).classList.add('active');
 
   // Lazy render
+  if (tab === 'agenda') renderAgenda();
   if (tab === 'minerais' && !document.getElementById('content-minerais').children.length)
     renderProductTab('MINERAIS', 'content-minerais');
   if (tab === 'racoes' && !document.getElementById('content-racoes').children.length)
