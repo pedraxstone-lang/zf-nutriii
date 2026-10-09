@@ -646,21 +646,33 @@ function renderProducao(key, tableId, statusFilter) {
   const agKey = agendaKeyOf[key];
 
   function getQtd(prod) {
-    if (statusFilter === 'all') return prod.qtd || 0;
     const pn = normSync(prod.produto);
+    if (statusFilter === 'all') {
+      // Sum active (A Produzir + Produzindo) from agenda live
+      if (agKey) {
+        return ['A Produzir','Produzindo'].reduce((s,st) => s + getStatusQtd(agKey, pn, st), 0);
+      }
+      // producao_total = RC + OF both active
+      return ['A Produzir','Produzindo'].reduce((s,st) =>
+        s + getStatusQtd('agendaRc', pn, st) + getStatusQtd('agendaOf', pn, st), 0);
+    }
     if (agKey) return getStatusQtd(agKey, pn, statusFilter);
     // producao_total = RC + OF
     return getStatusQtd('agendaRc', pn, statusFilter) + getStatusQtd('agendaOf', pn, statusFilter);
   }
 
   function getRcQtd(prod) {
-    if (statusFilter === 'all') { const m={}; state.producao_rc.forEach(p=>m[p.n]=p.qtd); return m[prod.n]||0; }
-    return getStatusQtd('agendaRc', normSync(prod.produto), statusFilter);
+    const pn = normSync(prod.produto);
+    if (statusFilter === 'all')
+      return ['A Produzir','Produzindo'].reduce((s,st) => s + getStatusQtd('agendaRc', pn, st), 0);
+    return getStatusQtd('agendaRc', pn, statusFilter);
   }
 
   function getOfQtd(prod) {
-    if (statusFilter === 'all') { const m={}; state.producao_of.forEach(p=>m[p.n]=p.qtd); return m[prod.n]||0; }
-    return getStatusQtd('agendaOf', normSync(prod.produto), statusFilter);
+    const pn = normSync(prod.produto);
+    if (statusFilter === 'all')
+      return ['A Produzir','Produzindo'].reduce((s,st) => s + getStatusQtd('agendaOf', pn, st), 0);
+    return getStatusQtd('agendaOf', pn, statusFilter);
   }
 
   const colLabel = statusFilter === 'A Produzir' ? 'A PRODUZIR (SC)'
@@ -1384,10 +1396,14 @@ function toggleTheme() {
 }
 
 // ===== INIT =====
+// Sync production quantities FROM agenda (replaces ZF_DATA hardcoded qtd)
+// This ensures production tabs always reflect agenda state, including after page reload
+syncAgendaToTabs('rc');
+syncAgendaToTabs('of');
 renderKPIs();
-renderProducao('producao_total', 'tbl-producao');
-renderProducao('producao_rc', 'tbl-prod_rc');
-renderProducao('producao_of', 'tbl-prod_of');
+renderProdWithFilter('main');
+renderProdWithFilter('rc');
+renderProdWithFilter('of');
 renderAbaP();
 renderResumo();
 // Pre-render all agendas so their IDs are valid for KPI clicks
