@@ -850,14 +850,22 @@ function switchTab(tabId) {
 
 function exportAgenda() {
   if (!window.XLSX) { alert('SheetJS não carregado ainda. Aguarde e tente novamente.'); return; }
-  const rows = state.agenda.map(r => ({
-    ID: r.id,
-    Cliente: r.cliente,
-    Produto: r.produto,
-    'Qtd (SC)': r.qtd||0,
-    'Data Produção': r.data || '',
-    Status: r.status
-  }));
+  const rows = state.agenda.map(r => {
+    // Convert ISO date to DD/MM/YYYY for Excel readability
+    let dataBR = r.data || '';
+    if (dataBR.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [y,m,d] = dataBR.split('-');
+      dataBR = `${d}/${m}/${y}`;
+    }
+    return {
+      ID: r.id,
+      Cliente: r.cliente,
+      Produto: r.produto,
+      'Qtd (SC)': r.qtd||0,
+      'Data Producao': dataBR,
+      Status: r.status
+    };
+  });
   // Add empty template rows if no data
   if (!rows.length) rows.push({ID:'',Cliente:'',Produto:'','Qtd (SC)':0,'Data Produção':'',Status:'A Produzir'});
 
@@ -878,6 +886,35 @@ function exportAgenda() {
   XLSX.writeFile(wb, `ZF_Agenda_${today}.xlsx`);
 }
 
+function excelDateToISO(val) {
+  // Excel stores dates as serial numbers (days since 1900-01-00)
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    if (!isNaN(d)) return d.toISOString().slice(0,10);
+  }
+  if (typeof val === 'string') {
+    // Try common date formats: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+    const s = val.trim();
+    const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+    const iso = s.match(/^\d{4}-\d{2}-\d{2}$/);
+    if (iso) return s;
+  }
+  return '';
+}
+
+function findCol(row, ...candidates) {
+  // Find a column value by trying multiple name variants (handles encoding issues)
+  for (const key of Object.keys(row)) {
+    const k = key.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+    for (const c of candidates) {
+      const cc = c.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+      if (k === cc) return row[key];
+    }
+  }
+  return undefined;
+}
+
 function importAgenda(input) {
   const file = input.files[0];
   if (!file) return;
@@ -885,37 +922,50 @@ function importAgenda(input) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws);
-      let added = 0;
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates: false});
+      // Use first sheet named 'Agenda', or first sheet
+      const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('agenda')) || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+
+      if (!rows.length) { alert('Planilha vazia ou sem dados na aba "' + sheetName + '".'); return; }
+
+      let added = 0, updated = 0;
       rows.forEach(r => {
-        // Update existing row by ID, or add new
-        const id = parseInt(r.ID);
+        const idVal = findCol(r, 'ID', 'id');
+        const clienteVal = String(findCol(r, 'Cliente', 'cliente', 'client') || '').trim();
+        const produtoVal = String(findCol(r, 'Produto', 'produto', 'product') || '').trim();
+        const qtdVal = parseInt(findCol(r, 'Qtd (SC)', 'Qtd(SC)', 'QTD (SC)', 'qtd', 'quantidade', 'SC') || 0) || 0;
+        const dataRaw = findCol(r, 'Data Producao', 'Data Produção', 'Data', 'data', 'date', 'Data de Produção');
+        const dataVal = excelDateToISO(dataRaw);
+        const statusRaw = String(findCol(r, 'Status', 'status') || '').trim();
+        const statusVal = ['A Produzir','Produzindo','Finalizado'].includes(statusRaw) ? statusRaw : 'A Produzir';
+
+        const id = parseInt(idVal);
         const existing = id ? state.agenda.find(a => a.id === id) : null;
-        const status = ['A Produzir','Produzindo','Finalizado'].includes(r.Status) ? r.Status : 'A Produzir';
-        const data = r['Data Produção'] ? String(r['Data Produção']).trim() : '';
+
         if (existing) {
-          existing.cliente = r.Cliente||existing.cliente;
-          existing.produto = r.Produto||existing.produto;
-          existing.qtd = parseInt(r['Qtd (SC)'])||existing.qtd;
-          existing.data = data||existing.data;
-          existing.status = status;
-        } else {
+          if (clienteVal) existing.cliente = clienteVal;
+          if (produtoVal) existing.produto = produtoVal;
+          if (qtdVal) existing.qtd = qtdVal;
+          if (dataVal) existing.data = dataVal;
+          existing.status = statusVal;
+          updated++;
+        } else if (clienteVal || produtoVal) {
           state.agenda.push({
             id: agendaNextId++,
-            cliente: r.Cliente||'',
-            produto: r.Produto||'',
-            qtd: parseInt(r['Qtd (SC)'])||0,
-            data: data,
-            status
+            cliente: clienteVal,
+            produto: produtoVal,
+            qtd: qtdVal,
+            data: dataVal,
+            status: statusVal
           });
           added++;
         }
       });
       saveAgenda();
       renderAgenda();
-      alert(`Importado: ${rows.length} linha(s) processada(s), ${added} nova(s) adicionada(s).`);
+      alert(`✅ Importado com sucesso!\n${updated} linha(s) atualizada(s)\n${added} nova(s) adicionada(s)`);
     } catch(err) {
       alert('Erro ao importar: ' + err.message);
     }
