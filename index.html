@@ -225,6 +225,8 @@ tr.section-hdr td {
 .filter-chip.f-produzir.active { background: #1d4ed8; }
 .filter-chip.f-produzindo.active { background: #b45309; }
 .filter-chip.f-finalizado.active { background: #15803d; }
+.prod-toolbar { display:flex; align-items:center; gap:10px; padding:6px 14px; background:var(--bar-bg); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.prod-toolbar .info-bar { margin:0; flex:1; border:none; background:none; padding:0; font-size:0.8rem; min-width:180px; }
 .status-badge {
   display: inline-block; padding: 3px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer;
@@ -299,7 +301,15 @@ tr.section-hdr td {
 
 <!-- PRODUÇÃO -->
 <div class="tab-content active" id="tab-producao">
-  <div class="info-bar">ℹ️ Altere as quantidades (SC = sacos) para recalcular os totais. Clique no campo e digite o novo valor.</div>
+  <div class="prod-toolbar">
+    <div class="info-bar">ℹ️ Quantidades por produto — atualizado automaticamente pelas Agendas (RC + OF).</div>
+    <div class="agenda-filters">
+      <button class="filter-chip f-all active" onclick="setProdFilter('all',this,'main')">Todos</button>
+      <button class="filter-chip f-produzir" onclick="setProdFilter('A Produzir',this,'main')">A Produzir</button>
+      <button class="filter-chip f-produzindo" onclick="setProdFilter('Produzindo',this,'main')">Produzindo</button>
+      <button class="filter-chip f-finalizado" onclick="setProdFilter('Finalizado',this,'main')">Finalizado</button>
+    </div>
+  </div>
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-producao"></table>
   </div>
@@ -307,7 +317,15 @@ tr.section-hdr td {
 
 <!-- PROD R CASCALHEIRA -->
 <div class="tab-content" id="tab-prod_rc">
-  <div class="info-bar">ℹ️ Produção destinada a <strong>R. Cascalheira</strong> — altere quantidades por produto.</div>
+  <div class="prod-toolbar">
+    <div class="info-bar">ℹ️ Produção <strong>R. Cascalheira</strong> — atualizado automaticamente da Agenda RC.</div>
+    <div class="agenda-filters">
+      <button class="filter-chip f-all active" onclick="setProdFilter('all',this,'rc')">Todos</button>
+      <button class="filter-chip f-produzir" onclick="setProdFilter('A Produzir',this,'rc')">A Produzir</button>
+      <button class="filter-chip f-produzindo" onclick="setProdFilter('Produzindo',this,'rc')">Produzindo</button>
+      <button class="filter-chip f-finalizado" onclick="setProdFilter('Finalizado',this,'rc')">Finalizado</button>
+    </div>
+  </div>
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-prod_rc"></table>
   </div>
@@ -315,7 +333,15 @@ tr.section-hdr td {
 
 <!-- PROD OURO FINO -->
 <div class="tab-content" id="tab-prod_of">
-  <div class="info-bar">ℹ️ Produção destinada a <strong>Ouro Fino</strong> — altere quantidades por produto.</div>
+  <div class="prod-toolbar">
+    <div class="info-bar">ℹ️ Produção <strong>Ouro Fino</strong> — atualizado automaticamente da Agenda OF.</div>
+    <div class="agenda-filters">
+      <button class="filter-chip f-all active" onclick="setProdFilter('all',this,'of')">Todos</button>
+      <button class="filter-chip f-produzir" onclick="setProdFilter('A Produzir',this,'of')">A Produzir</button>
+      <button class="filter-chip f-produzindo" onclick="setProdFilter('Produzindo',this,'of')">Produzindo</button>
+      <button class="filter-chip f-finalizado" onclick="setProdFilter('Finalizado',this,'of')">Finalizado</button>
+    </div>
+  </div>
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-prod_of"></table>
   </div>
@@ -610,50 +636,81 @@ function renderKPIs() {
 }
 
 // ===== PRODUÇÃO TABLE =====
-function renderProducao(key, tableId) {
+function renderProducao(key, tableId, statusFilter) {
+  statusFilter = statusFilter || 'all';
   const arr = state[key];
   const tbl = document.getElementById(tableId);
 
-  const rcMap = {}, ofMap = {};
-  state.producao_rc.forEach(p => rcMap[p.n] = p.qtd);
-  state.producao_of.forEach(p => ofMap[p.n] = p.qtd);
+  // Agenda key mapping for live status lookup
+  const agendaKeyOf = { producao_rc: 'agendaRc', producao_of: 'agendaOf', producao_total: null };
+  const agKey = agendaKeyOf[key];
+
+  function getQtd(prod) {
+    if (statusFilter === 'all') return prod.qtd || 0;
+    const pn = normSync(prod.produto);
+    if (agKey) return getStatusQtd(agKey, pn, statusFilter);
+    // producao_total = RC + OF
+    return getStatusQtd('agendaRc', pn, statusFilter) + getStatusQtd('agendaOf', pn, statusFilter);
+  }
+
+  function getRcQtd(prod) {
+    if (statusFilter === 'all') { const m={}; state.producao_rc.forEach(p=>m[p.n]=p.qtd); return m[prod.n]||0; }
+    return getStatusQtd('agendaRc', normSync(prod.produto), statusFilter);
+  }
+
+  function getOfQtd(prod) {
+    if (statusFilter === 'all') { const m={}; state.producao_of.forEach(p=>m[p.n]=p.qtd); return m[prod.n]||0; }
+    return getStatusQtd('agendaOf', normSync(prod.produto), statusFilter);
+  }
+
+  const colLabel = statusFilter === 'A Produzir' ? 'A PRODUZIR (SC)'
+    : statusFilter === 'Produzindo'  ? 'PRODUZINDO (SC)'
+    : statusFilter === 'Finalizado'  ? 'FINALIZADO (SC)'
+    : 'QTD TOTAL (SC)';
+
+  const colCount = key === 'producao_total' ? 8 : 6;
 
   let html = `<thead><tr>
     <th>#</th><th>PRODUTO</th><th>LINHA</th>
-    <th>QTD TOTAL (SC)</th>
+    <th>${colLabel}</th>
     ${key==='producao_total'?'<th>R. CASCALHEIRA</th><th>OURO FINO</th>':''}
     <th>CUSTO/SACO</th><th>VALOR TOTAL</th>
   </tr></thead><tbody>`;
 
-  const colCount = key === 'producao_total' ? 8 : 6;
-  let lastAba = '';
+  let lastAba = '', hasRows = false;
   arr.forEach(p => {
+    const qtd = getQtd(p);
+    // When filtering by status, only show products with qty > 0
+    if (statusFilter !== 'all' && qtd === 0) return;
+    hasRows = true;
     if (p.aba !== lastAba) {
       html += `<tr class="section-hdr"><td colspan="${colCount}">📁 ${p.aba}</td></tr>`;
       lastAba = p.aba;
     }
     const custo = state.resumo.find(r => r.produto.includes(p.produto.split(' ')[1] || p.produto))?.custo || 0;
-    const total_val = (p.qtd||0) * custo;
-    const zeroClass = (!p.qtd || p.qtd===0) ? ' zero' : '';
+    const total_val = qtd * custo;
+    const zeroClass = qtd === 0 ? ' zero' : '';
+    const rcQtd = key==='producao_total' ? getRcQtd(p) : 0;
+    const ofQtd = key==='producao_total' ? getOfQtd(p) : 0;
 
     html += `<tr>
       <td class="num center">${p.n}</td>
       <td style="font-weight:500">${p.produto}</td>
       <td class="center">${abaBadge(p.aba)}</td>
-      <td class="editable num">
-        <input type="number" min="0" value="${p.qtd||0}"
-          onchange="updateQtd('${key}',${p.n-1},this.value)"
-          onblur="this.parentElement.classList.remove('changed')"
-          oninput="this.parentElement.classList.add('changed')">
-      </td>
+      <td class="num${zeroClass}">${fmt.sc(qtd)}</td>
       ${key==='producao_total'?`
-        <td class="num${zeroClass}">${fmt.sc(rcMap[p.n]||0)}</td>
-        <td class="num${zeroClass}">${fmt.sc(ofMap[p.n]||0)}</td>
+        <td class="num${rcQtd===0?' zero':''}">${fmt.sc(rcQtd)}</td>
+        <td class="num${ofQtd===0?' zero':''}">${fmt.sc(ofQtd)}</td>
       `:''}
       <td class="num calc-cell${zeroClass}">${custo ? 'R$ '+fmt.n2(custo) : '—'}</td>
       <td class="num calc-cell${zeroClass}">${total_val ? fmt.price(total_val) : '—'}</td>
     </tr>`;
   });
+
+  if (!hasRows && statusFilter !== 'all') {
+    html += `<tr><td colspan="${colCount}" style="text-align:center;padding:24px;color:var(--fg3);font-style:italic">
+      Nenhum produto com status "${statusFilter}" na agenda.</td></tr>`;
+  }
 
   tbl.innerHTML = html + '</tbody>';
 }
@@ -813,6 +870,7 @@ const agendaCfg = {
 };
 
 const agendaFilters = { main: 'all', rc: 'all', of: 'all' };
+const prodFilters   = { main: 'all', rc: 'all', of: 'all' };
 
 function saveAgenda(which) {
   which = which || 'main';
@@ -959,6 +1017,7 @@ function updateAgendaField(which, id, field, value) {
     row[field] = field === 'qtd' ? (parseInt(value)||0) : value;
     saveAgenda(which);
     renderKPIs();
+    if (field === 'qtd') syncAgendaToTabs(which);  // auto-update production tabs
   }
 }
 
@@ -969,6 +1028,7 @@ function cycleStatus(which, id) {
   row.status = nextStatus(row.status);
   saveAgenda(which);
   renderAgenda(which);
+  syncAgendaToTabs(which);   // auto-update production tabs
 }
 
 function deleteAgendaRow(which, id) {
@@ -976,6 +1036,7 @@ function deleteAgendaRow(which, id) {
   state[cfg.stateKey] = state[cfg.stateKey].filter(r => r.id !== id);
   saveAgenda(which);
   renderAgenda(which);
+  syncAgendaToTabs(which);
 }
 
 function clearAtivos(which) {
@@ -986,6 +1047,7 @@ function clearAtivos(which) {
   state[cfg.stateKey] = state[cfg.stateKey].filter(r => r.status === 'Finalizado');
   saveAgenda(which);
   renderAgenda(which);
+  syncAgendaToTabs(which);
 }
 
 function setFilter(f, btn, which) {
@@ -995,6 +1057,31 @@ function setFilter(f, btn, which) {
   btn.closest('.agenda-toolbar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
   renderAgenda(which);
+}
+
+function setProdFilter(status, btn, which) {
+  prodFilters[which] = status;
+  btn.closest('.agenda-filters').querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProdWithFilter(which);
+}
+
+function renderProdWithFilter(which) {
+  const filter = prodFilters[which] || 'all';
+  if (which === 'rc')      renderProducao('producao_rc',    'tbl-prod_rc',  filter);
+  else if (which === 'of') renderProducao('producao_of',    'tbl-prod_of',  filter);
+  else                     renderProducao('producao_total', 'tbl-producao', filter);
+}
+
+// Returns total qty for a product (by normalized name) with the given status in an agenda
+function getStatusQtd(agendaKey, prodNorm, status) {
+  return (state[agendaKey] || [])
+    .filter(r => r.status === status)
+    .reduce((s, r) => {
+      const rn = normSync(r.produto || '');
+      return (rn === prodNorm || rn.includes(prodNorm) || prodNorm.includes(rn))
+        ? s + (parseInt(r.qtd) || 0) : s;
+    }, 0);
 }
 
 function switchTab(tabId) {
@@ -1211,9 +1298,9 @@ function syncAgendaToTabs(which) {
   }
 
   recalcIngredientTotals();
-  renderProducao('producao_rc',    'tbl-prod_rc');
-  renderProducao('producao_of',    'tbl-prod_of');
-  renderProducao('producao_total', 'tbl-producao');
+  renderProdWithFilter('rc');
+  renderProdWithFilter('of');
+  renderProdWithFilter('main');
   renderAbaP();
   renderKPIs();
 }
