@@ -213,6 +213,7 @@ tr.section-hdr td {
 .btn-export { background: var(--blue); color: #fff; }
 .btn-import { background: var(--bg3); color: var(--fg); border: 1px solid var(--border2); }
 .btn-clear { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+.btn-sync { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue); }
 .agenda-filters { display: flex; gap: 6px; margin-left: auto; }
 .filter-chip {
   padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border2);
@@ -346,6 +347,7 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'main')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('main')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
+    <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('main')" title="Atualiza quantidades de Produção e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'main')">Todos</button>
       <button class="filter-chip f-produzir" onclick="setFilter('A Produzir',this,'main')">A Produzir</button>
@@ -378,6 +380,7 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'rc')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('rc')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
+    <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('rc')" title="Atualiza quantidades de R. Cascalheira e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'rc')">Todos</button>
       <button class="filter-chip f-produzir" onclick="setFilter('A Produzir',this,'rc')">A Produzir</button>
@@ -410,6 +413,7 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'of')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('of')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
+    <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('of')" title="Atualiza quantidades de Ouro Fino e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'of')">Todos</button>
       <button class="filter-chip f-produzir" onclick="setFilter('A Produzir',this,'of')">A Produzir</button>
@@ -1126,6 +1130,7 @@ function importAgenda(input, which) {
       });
       saveAgenda(which);
       renderAgenda(which);
+      syncAgendaToTabs(which);
       alert(`✅ Importado com sucesso!\n${updated} linha(s) atualizada(s)\n${added} nova(s) adicionada(s)`);
     } catch(err) {
       alert('Erro ao importar: ' + err.message);
@@ -1133,6 +1138,114 @@ function importAgenda(input, which) {
   };
   reader.readAsArrayBuffer(file);
   input.value = '';
+}
+
+// ===== AGENDA → PRODUÇÃO SYNC =====
+function normSync(s) {
+  // Strip ZF NUTRIII prefix, remove accents + non-breaking space, keep only A-Z0-9%
+  return String(s)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/ /g, ' ')
+    .replace(/^ZF\s+NUTRI+\s*/i, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9%]/g, '')
+    .trim();
+}
+
+function syncAgendaToTabs(which) {
+  const cfg = agendaCfg[which];
+  // Sum quantities of active (non-Finalizado) orders by product (normalized name)
+  const qtdMap = {};
+  state[cfg.stateKey]
+    .filter(r => r.status !== 'Finalizado')
+    .forEach(r => {
+      const key = normSync(r.produto || '');
+      if (!key) return;
+      qtdMap[key] = (qtdMap[key] || 0) + (parseInt(r.qtd) || 0);
+    });
+
+  // Apply to the corresponding production array
+  function applyToArr(arr) {
+    arr.forEach(prod => {
+      const pn = normSync(prod.produto);
+      let found = false;
+      for (const [agKey, qty] of Object.entries(qtdMap)) {
+        if (agKey === pn || agKey.includes(pn) || pn.includes(agKey)) {
+          prod.qtd = qty; found = true; break;
+        }
+      }
+      if (!found) prod.qtd = 0;
+    });
+  }
+
+  if (which === 'rc') {
+    applyToArr(state.producao_rc);
+  } else if (which === 'of') {
+    applyToArr(state.producao_of);
+  } else {
+    applyToArr(state.producao_total);
+  }
+
+  // Recalc total = RC + OF when syncing RC or OF
+  if (which === 'rc' || which === 'of') {
+    const rcMap = {}, ofMap = {};
+    state.producao_rc.forEach(p => rcMap[p.n] = p.qtd || 0);
+    state.producao_of.forEach(p => ofMap[p.n] = p.qtd || 0);
+    state.producao_total.forEach(p => { p.qtd = (rcMap[p.n] || 0) + (ofMap[p.n] || 0); });
+  }
+
+  recalcIngredientTotals();
+  renderProducao('producao_rc',    'tbl-prod_rc');
+  renderProducao('producao_of',    'tbl-prod_of');
+  renderProducao('producao_total', 'tbl-producao');
+  renderAbaP();
+  renderKPIs();
+}
+
+function recalcIngredientTotals() {
+  function normIng(s) {
+    return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/ /g, ' ').toUpperCase().replace(/[^A-Z0-9%]/g, '').trim();
+  }
+  // Build ingredient index
+  const ingIdx = {};
+  state.ingredients.forEach((ing, i) => { ingIdx[normIng(ing.name)] = i; });
+  // Reset
+  state.ingredients.forEach(ing => { ing.total_rc = 0; ing.total_of = 0; ing.total_kg = 0; ing.total_val = 0; });
+  // Build product-key lookup map (normalized → actual key)
+  const prodKeyMap = {};
+  Object.keys(state.products).forEach(key => { prodKeyMap[normSync(key)] = key; });
+  function findProdKey(prodName) {
+    const n = normSync(prodName);
+    if (prodKeyMap[n]) return prodKeyMap[n];
+    for (const [mk, key] of Object.entries(prodKeyMap)) {
+      if (mk.includes(n) || n.includes(mk)) return key;
+    }
+    return null;
+  }
+  function accumulate(prodArr, field) {
+    prodArr.forEach(prod => {
+      const qty = parseInt(prod.qtd) || 0;
+      if (qty <= 0) return;
+      const prodKey = findProdKey(prod.produto);
+      if (!prodKey) return;
+      const formula = state.products[prodKey];
+      if (!formula || !formula.composition) return;
+      const bags = formula.bags || 33;
+      formula.composition.forEach(comp => {
+        const ni = normIng(comp.name);
+        const idx = ingIdx[ni];
+        if (idx === undefined) return;
+        state.ingredients[idx][field] += (comp.kg_per_1000 / bags) * qty;
+      });
+    });
+  }
+  accumulate(state.producao_rc, 'total_rc');
+  accumulate(state.producao_of, 'total_of');
+  state.ingredients.forEach(ing => {
+    ing.total_kg = ing.total_rc + ing.total_of;
+    ing.total_val = ing.total_kg * (ing.price || 0);
+  });
 }
 
 // ===== TABS =====
