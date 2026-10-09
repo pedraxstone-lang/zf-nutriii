@@ -1089,9 +1089,25 @@ function importAgenda(input, which) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates: false});
-      const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('agenda')) || wb.SheetNames[0];
+      // Escolhe a aba correta com base em 'which'
+      const sheetKeywords = {
+        rc:   ['agenda rc', 'cascalheira', ' rc'],
+        of:   ['agenda of', 'ouro fino', 'ouro'],
+        main: ['agenda geral', 'geral']
+      };
+      const keywords = sheetKeywords[which] || sheetKeywords.main;
+      const sheetName =
+        wb.SheetNames.find(n => keywords.some(k => n.toLowerCase().includes(k))) ||
+        wb.SheetNames.find(n => n.toLowerCase().includes('agenda')) ||
+        wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+      // O modelo tem 2 linhas de cabecalho (titulo + subtitulo) antes dos headers reais na linha 3
+      // range:2 faz sheet_to_json usar a linha 3 (indice 2) como header
+      let rows = XLSX.utils.sheet_to_json(ws, {defval: '', range: 2});
+      // Verifica se os headers reais foram lidos; se nao, tenta sem range (arquivo simples)
+      if (rows.length && !Object.keys(rows[0]).some(k => /^id$/i.test(k.trim()) || /^produto/i.test(k.trim()))) {
+        rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+      }
 
       if (!rows.length) { alert('Planilha vazia ou sem dados na aba "' + sheetName + '".'); return; }
 
