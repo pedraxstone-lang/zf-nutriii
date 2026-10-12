@@ -466,8 +466,6 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'rc')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('rc')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
-    <button class="agenda-btn" id="sk-btn-rc" onclick="syncSankhya('rc')" style="background:var(--blue3);color:var(--blue);border:1px solid var(--blue)">🏭 Sankhya</button>
-    <span id="sk-st-rc" style="font-size:11px;color:var(--text3)"></span>
     <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('rc')" title="Atualiza quantidades de R. Cascalheira e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'rc')">Todos</button>
@@ -519,8 +517,6 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'of')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('of')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
-    <button class="agenda-btn" id="sk-btn-of" onclick="syncSankhya('of')" style="background:var(--blue3);color:var(--blue);border:1px solid var(--blue)">🏭 Sankhya</button>
-    <span id="sk-st-of" style="font-size:11px;color:var(--text3)"></span>
     <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('of')" title="Atualiza quantidades de Ouro Fino e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'of')">Todos</button>
@@ -1964,158 +1960,6 @@ function toggleTheme() {
   const root = document.documentElement;
   const cur = root.getAttribute('data-theme');
   root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
-}
-
-
-// ─── SANKHYA SYNC ─────────────────────────────────────────────────────────────
-// Requer proxy rodando: cd zfnutrii_crm\backend && python main.py
-// Acesse o site via http://localhost:3001/fabricas para evitar bloqueio HTTPS↔HTTP
-var SK_NUTRII = {
-  proxy: (location.protocol === 'http:' && location.hostname === 'localhost')
-    ? location.protocol + '//' + location.host + '/proxy'
-    : 'http://localhost:3001/proxy',
-  cfg: {
-    token:  'f3a9b067-7b6e-4ef1-b76c-064c499f24f3',
-    appKey: 'df745680-a71c-4b54-be06-bbae8603b25d',
-    user:   'antonio.hass@zoofertil.com',
-    pass:   'lo210415',
-    emp:    { rc: 14, of: 2 }
-  },
-  bearer: null, bExp: null,
-
-  async login() {
-    var r = await fetch(this.proxy + '/login', {
-      method: 'POST',
-      headers: { 'token': this.cfg.token, 'appkey': this.cfg.appKey,
-                 'username': this.cfg.user, 'password': this.cfg.pass }
-    });
-    var d = await r.json().catch(() => ({}));
-    if (!r.ok || !d.bearerToken) throw new Error(d.statusMessage || d.error || 'Login falhou');
-    this.bearer = d.bearerToken;
-    this.bExp   = Date.now() + 11 * 3600000;
-    return d.bearerToken;
-  },
-  async tok() { if (!this.bearer || Date.now() > this.bExp) await this.login(); return this.bearer; },
-  async get(path) {
-    var t = await this.tok();
-    var r = await fetch(this.proxy + path, {
-      headers: { 'Authorization': 'Bearer ' + t, 'accept': 'application/json' }
-    });
-    if (r.status === 404) return { _empty: true };
-    var d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.statusMessage || d.error || 'HTTP ' + r.status);
-    return d;
-  },
-  arr(d) {
-    if (Array.isArray(d)) return d;
-    for (var k of ['data','content','items','itens','itensPedido','pedidos','rows','result']) {
-      if (d && Array.isArray(d[k])) return d[k];
-    }
-    var found = d && typeof d === 'object' && Object.values(d).find(v => Array.isArray(v));
-    return found || [];
-  },
-  fld(obj, ...keys) {
-    for (var k of keys) { var v = obj && obj[k]; if (v !== undefined && v !== null && v !== '') return v; }
-    return '';
-  }
-};
-
-async function syncSankhya(fab) {
-  var btn  = document.getElementById('sk-btn-' + fab);
-  var st   = document.getElementById('sk-st-' + fab);
-  var setS = (m, c) => { if (st) { st.textContent = m; st.style.color = c || 'var(--text3)'; }};
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando...'; }
-  try {
-    setS('Conectando ao Sankhya...', 'var(--amber)');
-    await SK_NUTRII.tok();
-
-    var emp = SK_NUTRII.cfg.emp[fab];
-    setS('Buscando pedidos (empresa ' + emp + ')...', 'var(--blue)');
-
-    var d = await SK_NUTRII.get('/v1/vendas/pedidos?page=0&codigoEmpresa=' + emp);
-    var orders = SK_NUTRII.arr(d);
-
-    if (!orders.length) {
-      setS('Tentando sem filtro de empresa...', 'var(--blue)');
-      d = await SK_NUTRII.get('/v1/vendas/pedidos?page=0');
-      orders = SK_NUTRII.arr(d);
-    }
-
-    setS('Processando ' + orders.length + ' pedidos...', 'var(--blue)');
-
-    var targetArr  = fab === 'rc' ? state.agendaRc : state.agendaOf;
-    var existingNFs = new Set(targetArr.map(r => String(r.nf || '')).filter(Boolean));
-    var rows = [];
-
-    for (var p of orders) {
-      var nf  = String(SK_NUTRII.fld(p, 'numero','numeroUnico','numPedido','numeroPedido','id') || '');
-      if (!nf || existingNFs.has(nf)) continue;
-
-      var solicitante = SK_NUTRII.fld(p, 'nomeCliente','nomeParceiro','nomeFantasia','razaoSocial','cliente');
-      var dtRec  = SK_NUTRII.fld(p, 'dataNegociacao','dataEmissao','dataEntrada','data');
-      var dtPrev = SK_NUTRII.fld(p, 'dataEntrega','dataPrevisaoEntrega','previsaoEntrega','dtEntrega');
-      var op     = SK_NUTRII.fld(p, 'op','ordemProducao','codigoOP','codOP');
-
-      // Itens embutidos no pedido
-      var itens = [];
-      var raw = p.itens || p.itensPedido || p.items || p.produtos;
-      if (Array.isArray(raw) && raw.length) itens = raw;
-
-      // Buscar itens via sub-endpoint se não vieram embutidos
-      if (!itens.length) {
-        try {
-          var di = await SK_NUTRII.get('/v1/vendas/pedidos/' + nf + '/itens');
-          if (!di._empty) itens = SK_NUTRII.arr(di);
-        } catch(e) {}
-      }
-
-      var mkRow = (it, idx) => ({
-        id:         Date.now() + Math.random(),
-        nf:         nf + (idx ? '-' + idx : ''),
-        op,
-        dt_rec:     dtRec,
-        solicitante,
-        cod:        SK_NUTRII.fld(it, 'codigoProduto','codProduto','codigo','codProd'),
-        produto:    SK_NUTRII.fld(it, 'nomeProduto','descricaoProduto','descricao','nome','produto'),
-        un:         Number(SK_NUTRII.fld(it, 'pesoLiquido','pesoBruto','pesoUnitario','peso') || 30),
-        qtd:        Number(SK_NUTRII.fld(it, 'quantidade','qtd','sc','qtdSolicitada','qtdPedida') || 0),
-        local:      SK_NUTRII.fld(p, 'localEntrega','cidadeEntrega','cidade','nomeCidade') || solicitante,
-        dt_prev:    dtPrev,
-        status:     'A Produzir',
-        obs:        SK_NUTRII.fld(p, 'observacao','obs','observacoes') || '',
-        status_log: '', dt_real: '', nf_ent: '', cte: '',
-        frete: 0, despesa: 0
-      });
-
-      if (itens.length) {
-        itens.forEach((it, idx) => rows.push(mkRow(it, idx > 0 ? idx + 1 : 0)));
-      } else {
-        rows.push(mkRow(p, 0));
-      }
-    }
-
-    if (!rows.length) {
-      setS('Nenhum pedido novo (todos já importados ou vazio)', 'var(--text3)');
-    } else {
-      if (fab === 'rc') {
-        state.agendaRc = state.agendaRc.concat(rows);
-        saveAgenda('rc'); renderAgenda('rc'); syncAgendaToTabs('rc');
-      } else {
-        state.agendaOf = state.agendaOf.concat(rows);
-        saveAgenda('of'); renderAgenda('of'); syncAgendaToTabs('of');
-      }
-      setS('✅ ' + rows.length + ' linhas importadas — ' + new Date().toLocaleTimeString('pt-BR'), 'var(--green)');
-    }
-  } catch(e) {
-    var msg = e.message || String(e);
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('net::') || msg.includes('fetch')) {
-      setS('❌ Proxy offline — inicie: cd zfnutrii_crm\\backend && python main.py', '#ef4444');
-    } else {
-      setS('❌ ' + msg, '#ef4444');
-    }
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🏭 Sankhya'; }
-  }
 }
 
 // ===== INIT =====
