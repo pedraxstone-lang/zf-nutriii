@@ -2099,6 +2099,8 @@ async function syncSankhya(fab) {
       orders = SK_NUTRII.arr(d);
     }
     setS('Processando ' + orders.length + ' pedidos...', 'var(--blue)');
+    console.log('[SK] pedidos recebidos:', orders.length, '| 1º campos:', orders[0] ? Object.keys(orders[0]) : 'vazio');
+    if (orders[0]) console.log('[SK] pedido[0]:', JSON.stringify(orders[0]).substring(0, 600));
     var targetArr   = fab === 'rc' ? state.agendaRc : state.agendaOf;
     var existingNFs = new Set(targetArr.map(r => String(r.nf || '')).filter(Boolean));
     var rows = [];
@@ -2142,9 +2144,11 @@ async function syncSankhya(fab) {
       setS('✅ ' + rows.length + ' linhas — ' + new Date().toLocaleTimeString('pt-BR'), 'var(--green)');
     }
   } catch(e) {
-    var msg = e.message || String(e);
-    if (/fetch|NetworkError|net::/.test(msg))
-      setS('❌ Proxy offline — cd zfnutrii_crm\\backend && python main.py', '#ef4444');
+    console.error('[syncSankhya] erro completo:', e);
+    var msg = (e && e.message) || (e && e.statusMessage) || (e && e.error)
+              || (typeof e === 'object' ? JSON.stringify(e) : String(e)) || 'Erro';
+    if (/fetch|NetworkError|net::|502|Proxy/.test(msg))
+      setS('❌ Proxy/Sankhya indisponível — verifique o terminal', '#ef4444');
     else setS('❌ ' + msg, '#ef4444');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🏭 Sankhya'; }
