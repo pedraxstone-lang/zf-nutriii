@@ -2050,7 +2050,12 @@ var SK_NUTRII = {
                  'username': this.cfg.user, 'password': this.cfg.pass }
     });
     var d = await r.json().catch(() => ({}));
-    if (!r.ok || !d.bearerToken) throw new Error(d.statusMessage || d.error || 'Login falhou');
+    if (!r.ok || !d.bearerToken) {
+      var _em = (typeof d.statusMessage === 'string' ? d.statusMessage : '')
+               || (typeof d.error === 'string' ? d.error : '')
+               || ('HTTP ' + r.status + ' — ' + JSON.stringify(d).substring(0,120));
+      throw new Error(_em || 'Login falhou');
+    }
     this.bearer = d.bearerToken;
     this.bExp   = Date.now() + 11 * 3600000;
     return d.bearerToken;
