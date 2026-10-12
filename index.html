@@ -282,6 +282,29 @@ tr.section-hdr td {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Agenda wide-table inputs ── */
+.ag-inp { background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px; }
+.ag-inp:focus { background:var(--bg2);border-radius:3px; }
+.ag-sel { background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--fg);font:inherit;padding:1px 3px;width:100%;font-size:11px; }
+/* ── Logistics ── */
+.truck-btn { padding:4px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--fg2);font:600 12px/1 inherit;cursor:pointer;transition:.15s; }
+.truck-btn.active { background:var(--gold);color:#000;border-color:var(--gold); }
+.log-card { background:var(--bg2);border-radius:10px;border:1px solid var(--border);overflow:hidden; }
+.log-card-header { display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap; }
+.log-dest { font-weight:700;font-size:14px;color:var(--gold); }
+.log-stat { font-size:12px;color:var(--fg3); }
+.log-tons { font-size:13px;font-weight:700; }
+.log-bar-wrap { flex:1 1 200px;background:var(--border);border-radius:4px;height:8px;min-width:80px; }
+.log-bar { height:100%;border-radius:4px;transition:width .3s; }
+.log-freight { font-size:13px;font-weight:700;color:var(--green); }
+.log-orders-tbl { width:100%;border-collapse:collapse;font-size:12px; }
+.log-orders-tbl th { text-align:left;padding:5px 10px;color:var(--fg3);font-weight:600;border-bottom:1px solid var(--border); }
+.log-orders-tbl td { padding:5px 10px;border-bottom:1px solid var(--border); }
+.log-orders-tbl tr:last-child td { border-bottom:none; }
+.flex-row { display:flex; }
+.freight-inp { width:90px;border:1px solid var(--border);background:var(--bg);color:var(--fg);border-radius:4px;padding:2px 5px;font:inherit;text-align:right; }
+
 </style>
 </head>
 <body>
@@ -307,6 +330,7 @@ tr.section-hdr td {
   <button class="tab-btn" data-tab="agenda">📅 AGENDA GERAL</button>
   <button class="tab-btn" data-tab="agenda_rc">📅 AGENDA RC</button>
   <button class="tab-btn" data-tab="agenda_of">📅 AGENDA OF</button>
+  <button class="tab-btn" data-tab="logistica">🚚 LOGÍSTICA</button>
   <button class="tab-btn" data-tab="minerais">🧪 MINERAIS</button>
   <button class="tab-btn" data-tab="racoes">🌾 RAÇÕES</button>
   <button class="tab-btn" data-tab="nc">⚗️ NC</button>
@@ -403,8 +427,26 @@ tr.section-hdr td {
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-agenda-main">
       <thead><tr>
-        <th>#</th><th>CLIENTE</th><th>PRODUTO</th>
-        <th>QTD (SC)</th><th>DATA PRODUÇÃO</th><th>STATUS</th><th></th>
+        <th class="num" style="min-width:36px">#</th>
+        <th style="min-width:80px">NF</th>
+        <th style="min-width:70px">OP</th>
+        <th style="min-width:100px">DT. RECEB.</th>
+        <th style="min-width:145px">SOLICITANTE</th>
+        <th style="min-width:210px">PRODUTO</th>
+        <th class="num" style="min-width:44px">UN</th>
+        <th class="num" style="min-width:64px">SC</th>
+        <th class="num" style="min-width:80px">PESO (kg)</th>
+        <th style="min-width:145px">LOCAL ENTREGA</th>
+        <th style="min-width:100px">DT. PREVISTA</th>
+        <th style="min-width:140px">STATUS PROD.</th>
+        <th style="min-width:170px">OBSERVAÇÕES</th>
+        <th style="min-width:155px">STATUS LOG.</th>
+        <th style="min-width:100px">DATA REAL</th>
+        <th style="min-width:80px">NF ENTREGA</th>
+        <th style="min-width:70px">CTE</th>
+        <th class="num" style="min-width:88px">FRETE (R$)</th>
+        <th class="num" style="min-width:88px">DESPESA</th>
+        <th style="min-width:30px"></th>
       </tr></thead>
       <tbody id="agendaBody-main"></tbody>
     </table>
@@ -436,8 +478,26 @@ tr.section-hdr td {
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-agenda-rc">
       <thead><tr>
-        <th>#</th><th>CLIENTE</th><th>PRODUTO</th>
-        <th>QTD (SC)</th><th>DATA PRODUÇÃO</th><th>STATUS</th><th></th>
+        <th class="num" style="min-width:36px">#</th>
+        <th style="min-width:80px">NF</th>
+        <th style="min-width:70px">OP</th>
+        <th style="min-width:100px">DT. RECEB.</th>
+        <th style="min-width:145px">SOLICITANTE</th>
+        <th style="min-width:210px">PRODUTO</th>
+        <th class="num" style="min-width:44px">UN</th>
+        <th class="num" style="min-width:64px">SC</th>
+        <th class="num" style="min-width:80px">PESO (kg)</th>
+        <th style="min-width:145px">LOCAL ENTREGA</th>
+        <th style="min-width:100px">DT. PREVISTA</th>
+        <th style="min-width:140px">STATUS PROD.</th>
+        <th style="min-width:170px">OBSERVAÇÕES</th>
+        <th style="min-width:155px">STATUS LOG.</th>
+        <th style="min-width:100px">DATA REAL</th>
+        <th style="min-width:80px">NF ENTREGA</th>
+        <th style="min-width:70px">CTE</th>
+        <th class="num" style="min-width:88px">FRETE (R$)</th>
+        <th class="num" style="min-width:88px">DESPESA</th>
+        <th style="min-width:30px"></th>
       </tr></thead>
       <tbody id="agendaBody-rc"></tbody>
     </table>
@@ -469,8 +529,26 @@ tr.section-hdr td {
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-agenda-of">
       <thead><tr>
-        <th>#</th><th>CLIENTE</th><th>PRODUTO</th>
-        <th>QTD (SC)</th><th>DATA PRODUÇÃO</th><th>STATUS</th><th></th>
+        <th class="num" style="min-width:36px">#</th>
+        <th style="min-width:80px">NF</th>
+        <th style="min-width:70px">OP</th>
+        <th style="min-width:100px">DT. RECEB.</th>
+        <th style="min-width:145px">SOLICITANTE</th>
+        <th style="min-width:210px">PRODUTO</th>
+        <th class="num" style="min-width:44px">UN</th>
+        <th class="num" style="min-width:64px">SC</th>
+        <th class="num" style="min-width:80px">PESO (kg)</th>
+        <th style="min-width:145px">LOCAL ENTREGA</th>
+        <th style="min-width:100px">DT. PREVISTA</th>
+        <th style="min-width:140px">STATUS PROD.</th>
+        <th style="min-width:170px">OBSERVAÇÕES</th>
+        <th style="min-width:155px">STATUS LOG.</th>
+        <th style="min-width:100px">DATA REAL</th>
+        <th style="min-width:80px">NF ENTREGA</th>
+        <th style="min-width:70px">CTE</th>
+        <th class="num" style="min-width:88px">FRETE (R$)</th>
+        <th class="num" style="min-width:88px">DESPESA</th>
+        <th style="min-width:30px"></th>
       </tr></thead>
       <tbody id="agendaBody-of"></tbody>
     </table>
@@ -499,6 +577,45 @@ tr.section-hdr td {
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-compras"></table>
   </div>
+</div>
+
+
+<!-- LOGÍSTICA -->
+<div class="tab-content" id="tab-logistica">
+  <div class="agenda-toolbar" style="flex-wrap:wrap;gap:8px">
+    <span style="font-weight:700;font-size:14px;color:var(--gold)">🚚 FORMAÇÃO DE CARGA</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:12px;color:var(--fg3)">Fábrica:</span>
+      <button class="filter-chip f-produzir active" id="log-fab-rc" onclick="setLogFab('rc',this)">R. CASCALHEIRA</button>
+      <button class="filter-chip f-produzindo" id="log-fab-of" onclick="setLogFab('of',this)">OURO FINO</button>
+      <button class="filter-chip f-all" id="log-fab-all" onclick="setLogFab('all',this)">AMBAS</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:12px;color:var(--fg3)">Status:</span>
+      <button class="filter-chip f-all active" id="log-st-all" onclick="setLogStatus('all',this)">Todos Ativos</button>
+      <button class="filter-chip f-produzir" id="log-st-prod" onclick="setLogStatus('A Produzir',this)">A Produzir</button>
+      <button class="filter-chip f-produzindo" id="log-st-ing" onclick="setLogStatus('Produzindo',this)">Produzindo</button>
+      <button class="filter-chip f-finalizado" id="log-st-fin" onclick="setLogStatus('Finalizado',this)">Finalizado</button>
+    </div>
+    <button class="agenda-btn" style="background:var(--accent2);margin-left:auto" onclick="toggleFreightConfig()">⚙️ Configurar Fretes</button>
+  </div>
+  <div id="freight-config" style="display:none;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap" class="flex-row">
+    <div style="font-size:13px;font-weight:700;width:100%;color:var(--fg2)">💰 Custo por Tonelada por Destino (R$/t)</div>
+    <div id="freight-config-rows" style="display:flex;flex-wrap:wrap;gap:10px 24px;width:100%"></div>
+    <button class="agenda-btn btn-add" onclick="saveFreightRates()" style="margin-top:6px">💾 Salvar Fretes</button>
+  </div>
+  <div style="padding:12px 16px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-size:13px;color:var(--fg3)">Caminhão padrão:</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="truck-btns">
+      <button class="truck-btn active" onclick="setTruck(15,this)">15 t</button>
+      <button class="truck-btn" onclick="setTruck(32,this)">32 t</button>
+      <button class="truck-btn" onclick="setTruck(37,this)">37 t</button>
+      <button class="truck-btn" onclick="setTruck(40,this)">40 t</button>
+      <button class="truck-btn" onclick="setTruck(50,this)">50 t</button>
+    </div>
+    <span style="font-size:12px;color:var(--fg3)" id="log-summary"></span>
+  </div>
+  <div id="log-cards" style="padding:12px 16px;display:flex;flex-direction:column;gap:16px"></div>
 </div>
 
 <!-- MINERAIS -->
@@ -1024,90 +1141,81 @@ function renderAgenda(which) {
   const allRows = state[cfg.stateKey];
   const filter = agendaFilters[which];
   const rows = filter === 'all' ? allRows : allRows.filter(r => r.status === filter);
-
   const tbody = document.getElementById('agendaBody-' + which);
-  const empty = document.getElementById('agendaEmpty-' + which);
+  const empty  = document.getElementById('agendaEmpty-' + which);
 
   const total = allRows.length;
-  const nProduzir = allRows.filter(r => r.status === 'A Produzir').length;
-  const nProduzindo = allRows.filter(r => r.status === 'Produzindo').length;
-  const nFinalizado = allRows.filter(r => r.status === 'Finalizado').length;
-  const scAtivos = allRows.filter(r => r.status !== 'Finalizado').reduce((s,r) => s + (parseInt(r.qtd)||0), 0);
+  const nA = allRows.filter(r=>r.status==='A Produzir').length;
+  const nI = allRows.filter(r=>r.status==='Produzindo').length;
+  const nF = allRows.filter(r=>r.status==='Finalizado').length;
+  const scAtiv = allRows.filter(r=>r.status!=='Finalizado').reduce((s,r)=>s+(parseInt(r.qtd)||0),0);
+  const tAtiv  = allRows.filter(r=>r.status!=='Finalizado').reduce((s,r)=>s+(parseInt(r.qtd)||0)*(parseInt(r.un)||30)/1000,0);
 
-  document.getElementById('agendaStats-' + which).innerHTML = `
+  document.getElementById('agendaStats-'+which).innerHTML = `
     <span style="font-weight:600;color:var(--fg2)">Total: ${total} ordens</span>
     <span style="color:var(--border2)">|</span>
-    <span class="astat"><span class="astat-dot" style="background:#1d4ed8"></span>${nProduzir} A Produzir</span>
-    <span class="astat"><span class="astat-dot" style="background:#b45309"></span>${nProduzindo} Produzindo</span>
-    <span class="astat"><span class="astat-dot" style="background:#15803d"></span>${nFinalizado} Finalizado</span>
+    <span class="astat"><span class="astat-dot" style="background:#1d4ed8"></span>${nA} A Produzir</span>
+    <span class="astat"><span class="astat-dot" style="background:#b45309"></span>${nI} Produzindo</span>
+    <span class="astat"><span class="astat-dot" style="background:#15803d"></span>${nF} Finalizado</span>
     <span style="color:var(--border2)">|</span>
-    <span style="font-weight:600;color:var(--gold)">⚡ ${fmt.sc(scAtivos)} SC ativos (excl. finalizados)</span>
+    <span style="font-weight:600;color:var(--gold)">⚡ ${fmt.sc(scAtiv)} SC / ${tAtiv.toFixed(1)} t ativos</span>
   `;
 
-  if (!rows.length) {
-    tbody.innerHTML = '';
-    empty.hidden = false;
-    return;
-  }
-  empty.hidden = true;
-
+  if (!rows.length) { tbody.innerHTML=''; empty.hidden=false; return; }
+  empty.hidden=true;
   const prodNames = cfg.getProdNames();
-  const dlId = 'prod-dl-' + which;
-
-  let html = '';
+  const dlId = 'prod-dl-'+which;
+  const stLogOpts = ['','AGUARDANDO','EM ROTA','ENTREGUE','EM ESTOQUE','CLIENTE RETIRA','ENTREGA PARCIAL','ESTOQUE FÁBRICA'];
+  let h='';
   rows.forEach(row => {
-    html += `<tr id="row-${which}-${row.id}">
+    const un = parseInt(row.un)||30;
+    const sc = parseInt(row.qtd)||0;
+    const peso = sc*un;
+    const sol = row.solicitante||row.cliente||'';
+    const st  = row.status||'A Produzir';
+    const stL = row.status_log||'';
+    h+=`<tr id="row-${which}-${row.id}">
       <td class="num center" style="color:var(--fg3);font-size:11px">${row.id}</td>
-      <td class="editable" style="min-width:140px">
-        <input type="text" value="${escHtml(row.cliente)}" placeholder="Nome do cliente"
-          onchange="updateAgendaField('${which}',${row.id},'cliente',this.value)"
-          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px">
-      </td>
-      <td class="editable" style="min-width:160px">
-        <input type="text" value="${escHtml(row.produto)}" placeholder="Produto" list="${dlId}"
-          onchange="updateAgendaField('${which}',${row.id},'produto',this.value)"
-          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px">
-      </td>
-      <td class="editable num" style="min-width:80px">
-        <input type="number" min="0" value="${row.qtd||''}" placeholder="0"
-          onchange="updateAgendaField('${which}',${row.id},'qtd',this.value)"
-          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;text-align:right;width:100%;padding:0 2px">
-      </td>
-      <td class="editable" style="min-width:130px">
-        <input type="date" value="${row.data||''}"
-          onchange="updateAgendaField('${which}',${row.id},'data',this.value)"
-          style="background:transparent;border:none;outline:none;color:var(--fg);font:inherit;width:100%;padding:0 2px">
-      </td>
-      <td class="center">
-        <button class="status-badge ${statusClass(row.status)}"
-          onclick="cycleStatus('${which}',${row.id})" title="Clique para avançar status">
-          ${row.status}
-        </button>
-      </td>
-      <td class="center">
-        <button class="del-btn" onclick="deleteAgendaRow('${which}',${row.id})" title="Remover">✕</button>
-      </td>
+      <td><input class="ag-inp" value="${escHtml(row.nf||'')}" placeholder="NF" onchange="updateAgendaField('${which}',${row.id},'nf',this.value)"></td>
+      <td><input class="ag-inp" value="${escHtml(row.op||'')}" placeholder="OP" onchange="updateAgendaField('${which}',${row.id},'op',this.value)"></td>
+      <td><input class="ag-inp" type="date" value="${row.dt_rec||''}" onchange="updateAgendaField('${which}',${row.id},'dt_rec',this.value)"></td>
+      <td><input class="ag-inp" value="${escHtml(sol)}" placeholder="Solicitante" onchange="updateAgendaField('${which}',${row.id},'solicitante',this.value)"></td>
+      <td><input class="ag-inp" value="${escHtml(row.produto||'')}" placeholder="Produto" list="${dlId}" onchange="updateAgendaField('${which}',${row.id},'produto',this.value)"></td>
+      <td><select class="ag-sel" onchange="updateAgendaField('${which}',${row.id},'un',this.value)">
+        <option value="30"${un===30?' selected':''}>30kg</option>
+        <option value="40"${un===40?' selected':''}>40kg</option>
+        <option value="25"${un===25?' selected':''}>25kg</option>
+      </select></td>
+      <td class="num editable"><input class="ag-inp" type="number" min="0" value="${sc||''}" placeholder="0" style="text-align:right" onchange="updateAgendaField('${which}',${row.id},'qtd',this.value)"></td>
+      <td class="num" style="color:var(--fg3);font-size:11px">${peso?fmt.n0(peso):'—'}</td>
+      <td><input class="ag-inp" value="${escHtml(row.local||'')}" placeholder="Local entrega" onchange="updateAgendaField('${which}',${row.id},'local',this.value)"></td>
+      <td><input class="ag-inp" type="date" value="${row.dt_prev||row.data||''}" onchange="updateAgendaField('${which}',${row.id},'dt_prev',this.value)"></td>
+      <td class="center"><button class="status-badge ${statusClass(st)}" onclick="cycleStatus('${which}',${row.id})" title="Clique para avançar">${st}</button></td>
+      <td><input class="ag-inp" value="${escHtml(row.obs||'')}" placeholder="Observações" onchange="updateAgendaField('${which}',${row.id},'obs',this.value)"></td>
+      <td><select class="ag-sel" onchange="updateAgendaField('${which}',${row.id},'status_log',this.value)">
+        ${stLogOpts.map(s=>`<option value="${s}"${stL===s?' selected':''}>${s||'—'}</option>`).join('')}
+      </select></td>
+      <td><input class="ag-inp" type="date" value="${row.dt_real||''}" onchange="updateAgendaField('${which}',${row.id},'dt_real',this.value)"></td>
+      <td><input class="ag-inp" value="${escHtml(row.nf_ent||'')}" placeholder="NF ent." onchange="updateAgendaField('${which}',${row.id},'nf_ent',this.value)"></td>
+      <td><input class="ag-inp" value="${escHtml(row.cte||'')}" placeholder="CTE" onchange="updateAgendaField('${which}',${row.id},'cte',this.value)"></td>
+      <td class="num"><input class="ag-inp" type="number" min="0" step="0.01" value="${row.frete||''}" placeholder="0" style="text-align:right" onchange="updateAgendaField('${which}',${row.id},'frete',this.value)"></td>
+      <td class="num"><input class="ag-inp" type="number" min="0" step="0.01" value="${row.despesa||''}" placeholder="0" style="text-align:right" onchange="updateAgendaField('${which}',${row.id},'despesa',this.value)"></td>
+      <td class="center"><button class="del-btn" onclick="deleteAgendaRow('${which}',${row.id})" title="Remover">✕</button></td>
     </tr>`;
   });
-
-  tbody.innerHTML = html + `<datalist id="${dlId}">${prodNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist>`;
+  tbody.innerHTML=h+`<datalist id="${dlId}">${prodNames.map(n=>`<option value="${escHtml(n)}">`).join('')}</datalist>`;
   renderKPIs();
 }
 
-function escHtml(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
 
 function addAgendaRow(which) {
   which = which || 'main';
   const cfg = agendaCfg[which];
   state[cfg.stateKey].push({
     id: window[cfg.nextIdKey]++,
-    cliente: '',
-    produto: '',
-    qtd: 0,
-    data: '',
-    status: 'A Produzir'
+    nf:'', op:'', dt_rec:'', solicitante:'', cod:'', produto:'',
+    un:30, qtd:0, local:'', dt_prev:'', status:'A Produzir', obs:'',
+    status_log:'', dt_real:'', nf_ent:'', cte:'', frete:0, despesa:0
   });
   saveAgenda(which);
   renderAgenda(which);
@@ -1124,10 +1232,11 @@ function updateAgendaField(which, id, field, value) {
   const cfg = agendaCfg[which];
   const row = state[cfg.stateKey].find(r => r.id === id);
   if (row) {
-    row[field] = field === 'qtd' ? (parseInt(value)||0) : value;
-    saveAgenda(which);
-    renderKPIs();
-    if (field === 'qtd') syncAgendaToTabs(which);  // auto-update production tabs
+    const numF=['qtd','un','frete','despesa'];
+    row[field] = numF.includes(field) ? (parseFloat(value)||0) : value;
+    saveAgenda(which); renderKPIs();
+    if (['qtd','un'].includes(field)) renderAgenda(which);
+    if (['qtd','produto','status'].includes(field)) syncAgendaToTabs(which);
   }
 }
 
@@ -1204,6 +1313,7 @@ function switchTab(tabId) {
   if (tabId === 'agenda')    renderAgenda('main');
   if (tabId === 'agenda_rc') renderAgenda('rc');
   if (tabId === 'agenda_of') renderAgenda('of');
+  if (tabId === 'logistica')  renderLogistica();
 }
 
 function exportAgenda(which) {
@@ -1219,12 +1329,20 @@ function exportAgenda(which) {
       dataBR = `${d}/${m}/${y}`;
     }
     return {
-      ID: r.id,
-      Cliente: r.cliente,
-      Produto: r.produto,
-      'Qtd (SC)': r.qtd||0,
-      'Data Producao': dataBR,
-      Status: r.status
+      ID:r.id, NF:r.nf||'', OP:r.op||'',
+      'Dt. Recebimento':r.dt_rec||'',
+      Solicitante:r.solicitante||r.cliente||'',
+      Cod:r.cod||'', Produto:r.produto||'',
+      'Un (kg)':r.un||30, 'SC':r.qtd||0,
+      'Peso (kg)':(parseInt(r.qtd)||0)*(parseInt(r.un)||30),
+      'Local Entrega':r.local||'',
+      'Dt. Prevista':r.dt_prev||r.data||'',
+      'Status Prod.':r.status||'',
+      Observacoes:r.obs||'',
+      'Status Log.':r.status_log||'',
+      'Data Real':r.dt_real||'',
+      'NF Entrega':r.nf_ent||'', CTE:r.cte||'',
+      'Frete (R$)':r.frete||0, 'Despesa':r.despesa||0
     };
   });
   if (!rows.length) rows.push({ID:'',Cliente:'',Produto:'','Qtd (SC)':0,'Data Producao':'',Status:'A Produzir'});
@@ -1286,72 +1404,104 @@ function importAgenda(input, which) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates: false});
-      // Escolhe a aba correta com base em 'which'
-      const sheetKeywords = {
-        rc:   ['agenda rc', 'cascalheira', ' rc'],
-        of:   ['agenda of', 'ouro fino', 'ouro'],
-        main: ['agenda geral', 'geral']
-      };
-      const keywords = sheetKeywords[which] || sheetKeywords.main;
+      // Smart sheet detection
+      const kws = {
+        rc:   ['fabrica zf nutriii','nutriiii','( 14 )','cascalheira','agenda rc'],
+        of:   ['ouro fino','( 02 )','agenda of'],
+        main: ['agenda geral','geral','producao zf']
+      }[which] || ['agenda'];
       const sheetName =
-        wb.SheetNames.find(n => keywords.some(k => n.toLowerCase().includes(k))) ||
+        wb.SheetNames.find(n => kws.some(k => n.toLowerCase().includes(k))) ||
         wb.SheetNames.find(n => n.toLowerCase().includes('agenda')) ||
         wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
-      // O modelo tem 2 linhas de cabecalho (titulo + subtitulo) antes dos headers reais na linha 3
-      // range:2 faz sheet_to_json usar a linha 3 (indice 2) como header
-      let rows = XLSX.utils.sheet_to_json(ws, {defval: '', range: 2});
-      // Verifica se os headers reais foram lidos; se nao, tenta sem range (arquivo simples)
-      if (rows.length && !Object.keys(rows[0]).some(k => /^id$/i.test(k.trim()) || /^produto/i.test(k.trim()))) {
-        rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+      const firstCell = ws['A1'] ? String(ws['A1'].v||'').trim() : '';
+      const isProdFmt = /^NF|^Nf/i.test(firstCell);
+
+      let added=0, updated=0;
+
+      function fc(r,...names) {
+        for (const k of Object.keys(r)) {
+          const kn = k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+          for (const n of names) {
+            const nn = String(n).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+            if (kn===nn||kn.includes(nn)||nn.includes(kn)) return r[k];
+          }
+        }
+        return '';
       }
 
-      if (!rows.length) { alert('Planilha vazia ou sem dados na aba "' + sheetName + '".'); return; }
-
-      let added = 0, updated = 0;
-      rows.forEach(r => {
-        const idVal = findCol(r, 'ID', 'id');
-        const clienteVal = String(findCol(r, 'Cliente', 'cliente', 'client') || '').trim();
-        const produtoVal = String(findCol(r, 'Produto', 'produto', 'product') || '').trim();
-        const qtdVal = parseInt(findCol(r, 'Qtd (SC)', 'Qtd(SC)', 'QTD (SC)', 'qtd', 'quantidade', 'SC') || 0) || 0;
-        const dataRaw = findCol(r, 'Data Producao', 'Data Produção', 'Data', 'data', 'date', 'Data de Produção');
-        const dataVal = excelDateToISO(dataRaw);
-        const statusRaw = String(findCol(r, 'Status', 'status') || '').trim();
-        const statusVal = ['A Produzir','Produzindo','Finalizado'].includes(statusRaw) ? statusRaw : 'A Produzir';
-
-        const id = parseInt(idVal);
-        const existing = id ? state[cfg.stateKey].find(a => a.id === id) : null;
-
-        if (existing) {
-          if (clienteVal) existing.cliente = clienteVal;
-          if (produtoVal) existing.produto = produtoVal;
-          if (qtdVal) existing.qtd = qtdVal;
-          if (dataVal) existing.data = dataVal;
-          existing.status = statusVal;
-          updated++;
-        } else if (clienteVal || produtoVal) {
+      if (isProdFmt) {
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:'', range:0});
+        rows.forEach(r => {
+          const sc = parseInt(fc(r,'SC','Sc','sc'))||0;
+          const prod = String(fc(r,'Produto','produto')||'').trim();
+          if (!prod && !sc) return;
+          if (/^TOTAL/i.test(String(fc(r,'SC','Sc')||''))) return;
+          const stRaw = String(fc(r,'Status Producao','Status Produção','Status','status')||'').trim().toUpperCase().replace(/\s+/g,' ');
+          const stMap={'FINALIZADO':'Finalizado','FINALIZADO ':'Finalizado','A PRODUZIR':'A Produzir','PRODUZINDO':'Produzindo'};
+          const st = stMap[stRaw] || (['Finalizado','A Produzir','Produzindo'].includes(stRaw)?stRaw:'A Produzir');
           state[cfg.stateKey].push({
             id: window[cfg.nextIdKey]++,
-            cliente: clienteVal,
-            produto: produtoVal,
-            qtd: qtdVal,
-            data: dataVal,
-            status: statusVal
+            nf: String(fc(r,'NF VD/NU','NF°','NF','nf')||'').trim(),
+            op: String(fc(r,'OP','op')||'').trim(),
+            dt_rec: excelDateToISO(fc(r,'Dt. Recebimento','dt recebimento','data recebimento')),
+            solicitante: String(fc(r,'Solicitante','solicitante','cliente')||'').trim(),
+            cod: String(fc(r,'Cod Produto','Cod','cod')||'').trim(),
+            produto: prod,
+            un: parseInt(fc(r,'Un.','Un','un'))||30,
+            qtd: sc,
+            local: String(fc(r,'Local de entrega','entrega','local')||'').trim(),
+            dt_prev: excelDateToISO(fc(r,'Dt. Prevista entrega','Dt. Prevista','data prevista')),
+            status: st,
+            obs: String(fc(r,'Observacoes','Observações','obs')||'').trim(),
+            status_log: String(fc(r,'Status Logistico','Status Logístico','status log')||'').trim(),
+            dt_real: excelDateToISO(fc(r,'Data entrega Real','Data entrega','data real')),
+            nf_ent: String(fc(r,'NF ENTREGA','nf entrega')||'').trim(),
+            cte: String(fc(r,'CTE','cte')||'').trim(),
+            frete: parseFloat(fc(r,'FRETE','frete'))||0,
+            despesa: parseFloat(fc(r,'DESPESA','despesa'))||0
           });
           added++;
+        });
+      } else {
+        let rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        if (rows.length && !Object.keys(rows[0]).some(k=>/^id$/i.test(k.trim())||/^produto/i.test(k.trim()))) {
+          rows = XLSX.utils.sheet_to_json(ws, {defval:'', range:2});
         }
-      });
-      saveAgenda(which);
-      renderAgenda(which);
-      syncAgendaToTabs(which);
-      alert(`✅ Importado com sucesso!\n${updated} linha(s) atualizada(s)\n${added} nova(s) adicionada(s)`);
-    } catch(err) {
-      alert('Erro ao importar: ' + err.message);
-    }
+        rows.forEach(r => {
+          const idVal = fc(r,'id','ID');
+          const sol = String(fc(r,'solicitante','Solicitante','cliente','Cliente')||'').trim();
+          const prod = String(fc(r,'produto','Produto')||'').trim();
+          const sc = parseInt(fc(r,'qtd (sc)','Qtd (SC)','sc','SC'))||0;
+          const dtPrev = excelDateToISO(fc(r,'dt. prevista','Dt. Prevista','Data Producao','data'));
+          const stRaw = String(fc(r,'status','Status')||'').trim();
+          const st = ['A Produzir','Produzindo','Finalizado'].includes(stRaw)?stRaw:'A Produzir';
+          const id = parseInt(idVal);
+          const existing = id ? state[cfg.stateKey].find(a=>a.id===id) : null;
+          if (existing) {
+            if (sol) existing.solicitante=sol;
+            if (prod) existing.produto=prod;
+            if (sc) existing.qtd=sc;
+            if (dtPrev) existing.dt_prev=dtPrev;
+            existing.status=st; updated++;
+          } else if (sol||prod) {
+            state[cfg.stateKey].push({
+              id:window[cfg.nextIdKey]++,nf:'',op:'',dt_rec:'',solicitante:sol,cod:'',produto:prod,
+              un:30,qtd:sc,local:'',dt_prev:dtPrev,status:st,obs:'',status_log:'',dt_real:'',nf_ent:'',cte:'',frete:0,despesa:0
+            });
+            added++;
+          }
+        });
+      }
+      saveAgenda(which); renderAgenda(which); syncAgendaToTabs(which);
+      alert('✅ Importado: "'+sheetName+'"\n'+added+' nova(s) | '+updated+' atualizada(s)');
+    } catch(err) { console.error(err); alert('Erro ao importar: '+err.message); }
   };
   reader.readAsArrayBuffer(file);
-  input.value = '';
+  input.value='';
 }
+
 
 // ===== AGENDA → PRODUÇÃO SYNC =====
 function normSync(s) {
@@ -1603,6 +1753,134 @@ function renderCompras(view) {
   }
 
   document.getElementById('tbl-compras').innerHTML = tbl + '</tbody>';
+}
+
+
+// ===== LOGÍSTICA / FORMAÇÃO DE CARGA =====
+let logFab = 'rc';
+let logStatus = 'all';
+let logTruck = 15;
+let freightRates = {};
+try { const fr=localStorage.getItem('zf_freight'); if(fr) freightRates=JSON.parse(fr); } catch(e){}
+
+function saveFreightRates() {
+  document.querySelectorAll('#freight-config-rows .freight-row').forEach(row => {
+    const dest=row.dataset.dest;
+    const val=parseFloat(row.querySelector('.freight-inp').value)||0;
+    if(dest) freightRates[dest]=val;
+  });
+  try { localStorage.setItem('zf_freight',JSON.stringify(freightRates)); } catch(e){}
+  renderLogistica();
+  alert('✅ Fretes salvos!');
+}
+
+function toggleFreightConfig() {
+  const el=document.getElementById('freight-config');
+  el.style.display=el.style.display==='none'?'flex':'none';
+  if(el.style.display!=='none') renderFreightConfig();
+}
+
+function renderFreightConfig() {
+  const orders=getLogOrders();
+  const dests=[...new Set(orders.map(r=>(r.solicitante||r.cliente||'').trim()).filter(Boolean))].sort();
+  document.getElementById('freight-config-rows').innerHTML=dests.length
+    ? dests.map(d=>`<div class="freight-row" data-dest="${d}" style="display:flex;align-items:center;gap:8px">
+        <span style="min-width:160px;font-size:13px">${d}</span>
+        <input class="freight-inp" type="number" min="0" step="1" value="${freightRates[d]||0}" placeholder="R$/t">
+        <span style="font-size:11px;color:var(--fg3)">R$/t</span>
+      </div>`).join('')
+    : '<span style="color:var(--fg3)">Nenhuma ordem com destino preenchido.</span>';
+}
+
+function setLogFab(fab,btn) {
+  logFab=fab;
+  ['rc','of','all'].forEach(f=>{ const b=document.getElementById('log-fab-'+f); if(b) b.classList.toggle('active',f===fab); });
+  renderLogistica();
+}
+
+function setLogStatus(st,btn) {
+  logStatus=st;
+  const idMap={'all':'log-st-all','A Produzir':'log-st-prod','Produzindo':'log-st-ing','Finalizado':'log-st-fin'};
+  Object.values(idMap).forEach(id=>{ const b=document.getElementById(id); if(b) b.classList.remove('active'); });
+  const b=document.getElementById(idMap[st]); if(b) b.classList.add('active');
+  renderLogistica();
+}
+
+function setTruck(tons,btn) {
+  logTruck=tons;
+  document.querySelectorAll('.truck-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLogistica();
+}
+
+function getLogOrders() {
+  let orders=[];
+  if(logFab==='rc'||logFab==='all') orders=orders.concat((state.agendaRc||[]).map(r=>({...r,_fab:'RC'})));
+  if(logFab==='of'||logFab==='all') orders=orders.concat((state.agendaOf||[]).map(r=>({...r,_fab:'OF'})));
+  if(logStatus==='all') orders=orders.filter(r=>r.status!=='Finalizado');
+  else orders=orders.filter(r=>r.status===logStatus);
+  return orders;
+}
+
+function renderLogistica() {
+  const orders=getLogOrders();
+  const cards=document.getElementById('log-cards');
+  if(!orders.length) {
+    cards.innerHTML='<div class="agenda-empty" style="padding:32px;text-align:center;color:var(--fg3)">Nenhuma ordem. Ajuste os filtros.</div>';
+    document.getElementById('log-summary').textContent='';
+    return;
+  }
+  const groups={};
+  orders.forEach(r=>{
+    const dest=(r.solicitante||r.cliente||'(sem destino)').trim();
+    if(!groups[dest]) groups[dest]=[];
+    groups[dest].push(r);
+  });
+  const truckT=logTruck;
+  let totalTons=0; let h='';
+  Object.entries(groups).sort(([a],[b])=>a.localeCompare(b)).forEach(([dest,rows])=>{
+    const totalSC=rows.reduce((s,r)=>s+(parseInt(r.qtd)||0),0);
+    const totalKg=rows.reduce((s,r)=>s+(parseInt(r.qtd)||0)*(parseInt(r.un)||30),0);
+    const tons=totalKg/1000; totalTons+=tons;
+    const pct=Math.min(100,(tons/truckT)*100);
+    const rate=freightRates[dest]||0;
+    const freightTotal=rate*tons;
+    const barColor=pct>=90?'var(--green)':pct>=60?'var(--gold)':'var(--accent)';
+    const fabs=[...new Set(rows.map(r=>r._fab||'').filter(Boolean))].join('+');
+    const byProd={};
+    rows.forEach(r=>{
+      const k=(r.produto||'?').trim();
+      if(!byProd[k]) byProd[k]={sc:0,kg:0,fab:r._fab||'',st:r.status||''};
+      byProd[k].sc+=parseInt(r.qtd)||0;
+      byProd[k].kg+=(parseInt(r.qtd)||0)*(parseInt(r.un)||30);
+    });
+    h+=`<div class="log-card">
+      <div class="log-card-header">
+        <span class="log-dest">📍 ${dest}</span>
+        ${fabs?`<span style="font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1px 8px;color:var(--fg3)">${fabs}</span>`:''}
+        <span class="log-tons">${totalSC} SC &nbsp;|&nbsp; ${tons.toFixed(2)} t</span>
+        <div class="log-bar-wrap" title="${pct.toFixed(0)}% do caminhão ${truckT}t">
+          <div class="log-bar" style="width:${pct}%;background:${barColor}"></div>
+        </div>
+        <span class="log-stat">${pct.toFixed(0)}% de ${truckT}t</span>
+        ${rate?`<span class="log-freight">R$ ${fmt.price(freightTotal)} frete</span>`:'<span style="font-size:12px;color:var(--fg3)">Sem frete configurado</span>'}
+      </div>
+      <div style="overflow-x:auto">
+        <table class="log-orders-tbl">
+          <thead><tr><th>Produto</th><th>Fábrica</th><th class="num">SC</th><th class="num">Peso (t)</th><th>Status</th></tr></thead>
+          <tbody>${Object.entries(byProd).map(([p,d])=>
+            `<tr><td>${p}</td><td>${d.fab}</td><td class="num">${d.sc}</td>
+            <td class="num">${(d.kg/1000).toFixed(3)}</td>
+            <td><span class="status-badge ${statusClass(d.st)}" style="font-size:11px;padding:2px 8px">${d.st}</span></td></tr>`
+          ).join('')}</tbody>
+          <tfoot><tr style="font-weight:700;background:var(--bg3)"><td colspan="2">TOTAL</td>
+            <td class="num">${totalSC}</td><td class="num">${tons.toFixed(3)} t</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+  });
+  cards.innerHTML=h;
+  document.getElementById('log-summary').textContent=`${Object.keys(groups).length} destino(s) | ${orders.length} ordens | ${totalTons.toFixed(1)} t total`;
 }
 
 function recalcIngredientTotals() {
