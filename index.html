@@ -466,6 +466,8 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'rc')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('rc')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
+    <button class="agenda-btn" id="sk-btn-rc" onclick="syncSankhya('rc')" style="background:var(--blue3);color:var(--blue);border:1px solid var(--blue)">🏭 Sankhya</button>
+    <span id="sk-st-rc" style="font-size:11px;color:var(--text3)"></span>
     <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('rc')" title="Atualiza quantidades de R. Cascalheira e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'rc')">Todos</button>
@@ -517,6 +519,8 @@ tr.section-hdr td {
       <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importAgenda(this,'of')">
     </label>
     <button class="agenda-btn btn-clear" onclick="clearAtivos('of')" title="Remove A Produzir e Produzindo, mantém Finalizado">🗑 Limpar Ativos</button>
+    <button class="agenda-btn" id="sk-btn-of" onclick="syncSankhya('of')" style="background:var(--blue3);color:var(--blue);border:1px solid var(--blue)">🏭 Sankhya</button>
+    <span id="sk-st-of" style="font-size:11px;color:var(--text3)"></span>
     <button class="agenda-btn btn-sync" onclick="syncAgendaToTabs('of')" title="Atualiza quantidades de Ouro Fino e Aba P com base nas ordens ativas">🔄 Sincronizar Produção</button>
     <div class="agenda-filters">
       <button class="filter-chip f-all active" onclick="setFilter('all',this,'of')">Todos</button>
@@ -564,6 +568,8 @@ tr.section-hdr td {
     <button class="compras-sub-btn active" onclick="switchComprasView('total',this)">📊 TOTAL GERAL</button>
     <button class="compras-sub-btn" onclick="switchComprasView('rc',this)">🏭 R. CASCALHEIRA</button>
     <button class="compras-sub-btn" onclick="switchComprasView('of',this)">🏭 OURO FINO</button>
+    <button class="compras-sub-btn" id="compras-btn-mp"  onclick="switchComprasView('mp',this)">💰 PREÇOS MP</button>
+    <button class="compras-sub-btn" id="compras-btn-mrp" onclick="switchComprasView('mrp',this)">🧮 MRP AUTO</button>
   </div>
   <div class="compras-filter-row">
     <span>Incluir ordens:</span>
@@ -576,6 +582,37 @@ tr.section-hdr td {
   <div class="compras-kpi" id="compras-kpi"></div>
   <div class="sheet-wrap">
     <table class="sheet" id="tbl-compras"></table>
+  </div>
+  <div id="compras-mp-panel" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <span style="font-weight:700;font-size:13px;color:var(--fg2)">💰 Preços das Matérias-Primas — Sankhya vs. Planilha</span>
+      <button id="sk-mp-btn" class="agenda-btn" onclick="syncSankhyaPrecos()" style="background:var(--blue3);color:var(--blue);border:1px solid var(--blue)">🔄 Buscar Preços</button>
+      <span id="sk-mp-st" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+    <div class="sheet-wrap">
+      <table class="sheet" id="tbl-mp-precos">
+        <thead><tr><th>Código</th><th>Ingrediente</th><th style="text-align:right">Planilha (R$/kg)</th><th style="text-align:right">Sankhya (R$/kg)</th><th style="text-align:right">Variação</th><th style="font-size:10px">Fonte</th></tr></thead>
+        <tbody id="tbody-mp-precos"><tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:24px">Clique em "Buscar Preços" para atualizar.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="compras-mrp-panel" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <span style="font-weight:700;font-size:13px;color:var(--fg2)">🧮 MRP Automático — Necessidades de Compra</span>
+      <button id="sk-mrp-btn" class="agenda-btn" onclick="syncSankhyaMRP()" style="background:var(--blue3);color:var(--blue);border:1px solid var(--blue)">🔄 Calcular MRP</button>
+      <span id="sk-mrp-fab" style="display:flex;gap:6px;margin-left:8px">
+        <button class="filter-chip f-produzir active" id="mrp-fab-rc" onclick="setMrpFab('rc',this)">R. CASCALHEIRA</button>
+        <button class="filter-chip f-produzindo" id="mrp-fab-of" onclick="setMrpFab('of',this)">OURO FINO</button>
+        <button class="filter-chip f-all" id="mrp-fab-all" onclick="setMrpFab('all',this)">AMBAS</button>
+      </span>
+      <span id="sk-mrp-st" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+    <div class="sheet-wrap">
+      <table class="sheet" id="tbl-mrp">
+        <thead><tr><th>Cód.</th><th>Ingrediente</th><th style="text-align:right">Necessário (kg)</th><th style="text-align:right">Estoque (kg)</th><th style="text-align:right;color:var(--red)">Comprar (kg)</th><th style="text-align:right">Vem de</th></tr></thead>
+        <tbody id="tbody-mrp"><tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:24px">Clique em "Calcular MRP" para ver as necessidades de compra com base na agenda.</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1577,9 +1614,35 @@ function setComprasFilter(f, btn) {
 }
 
 function switchComprasView(view, btn) {
-  comprasView = view;
+  var mpPanel  = document.getElementById('compras-mp-panel');
+  var mrpPanel = document.getElementById('compras-mrp-panel');
+  var mainRow  = document.querySelector('#tab-compras .compras-filter-row');
+  var kpi      = document.getElementById('compras-kpi');
+  var tblWrap  = document.querySelector('#tab-compras > .sheet-wrap');
   btn.closest('.compras-sub-nav').querySelectorAll('.compras-sub-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  if (view === 'mp') {
+    if (mpPanel)  mpPanel.style.display  = '';
+    if (mrpPanel) mrpPanel.style.display = 'none';
+    if (mainRow)  mainRow.style.display  = 'none';
+    if (kpi)      kpi.style.display      = 'none';
+    if (tblWrap)  tblWrap.style.display  = 'none';
+    return;
+  }
+  if (view === 'mrp') {
+    if (mpPanel)  mpPanel.style.display  = 'none';
+    if (mrpPanel) mrpPanel.style.display = '';
+    if (mainRow)  mainRow.style.display  = 'none';
+    if (kpi)      kpi.style.display      = 'none';
+    if (tblWrap)  tblWrap.style.display  = 'none';
+    return;
+  }
+  if (mpPanel)  mpPanel.style.display  = 'none';
+  if (mrpPanel) mrpPanel.style.display = 'none';
+  if (mainRow)  mainRow.style.display  = '';
+  if (kpi)      kpi.style.display      = '';
+  if (tblWrap)  tblWrap.style.display  = '';
+  comprasView = view;
   renderCompras(view);
 }
 
@@ -1960,6 +2023,385 @@ function toggleTheme() {
   const root = document.documentElement;
   const cur = root.getAttribute('data-theme');
   root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// SANKHYA — CLIENTE REST  (via proxy local: cd zfnutrii_crm\backend && python main.py)
+// Acesse via http://localhost:3001/fabricas  (evita bloqueio HTTPS↔HTTP)
+// ═══════════════════════════════════════════════════════════════════
+var SK_NUTRII = {
+  proxy: (location.protocol === 'http:' && location.hostname === 'localhost')
+    ? location.protocol + '//' + location.host + '/proxy'
+    : 'http://localhost:3001/proxy',
+  cfg: {
+    token:  'f3a9b067-7b6e-4ef1-b76c-064c499f24f3',
+    appKey: 'df745680-a71c-4b54-be06-bbae8603b25d',
+    user:   'antonio.hass@zoofertil.com',
+    pass:   'lo210415',
+    emp:    { rc: 14, of: 2 }
+  },
+  bearer: null, bExp: null,
+
+  async login() {
+    var r = await fetch(this.proxy + '/login', {
+      method: 'POST',
+      headers: { 'token': this.cfg.token, 'appkey': this.cfg.appKey,
+                 'username': this.cfg.user, 'password': this.cfg.pass }
+    });
+    var d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.bearerToken) throw new Error(d.statusMessage || d.error || 'Login falhou');
+    this.bearer = d.bearerToken;
+    this.bExp   = Date.now() + 11 * 3600000;
+    return d.bearerToken;
+  },
+  async tok() { if (!this.bearer || Date.now() > this.bExp) await this.login(); return this.bearer; },
+  async get(path) {
+    var t = await this.tok();
+    var r = await fetch(this.proxy + path, {
+      headers: { 'Authorization': 'Bearer ' + t, 'accept': 'application/json' }
+    });
+    if (r.status === 404) return { _empty: true };
+    var d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.statusMessage || d.error || 'HTTP ' + r.status);
+    return d;
+  },
+  arr(d) {
+    if (Array.isArray(d)) return d;
+    for (var k of ['componentes','estoque','data','content','items','itens','itensPedido','pedidos','rows','result','produtos']) {
+      if (d && Array.isArray(d[k])) return d[k];
+    }
+    var found = d && typeof d === 'object' && Object.values(d).find(v => Array.isArray(v));
+    return found || [];
+  },
+  fld(obj, ...keys) {
+    for (var k of keys) { var v = obj && obj[k]; if (v !== undefined && v !== null && v !== '') return v; }
+    return '';
+  }
+};
+
+// ─── importar pedidos Sankhya → agenda de produção ─────────────────
+async function syncSankhya(fab) {
+  var btn  = document.getElementById('sk-btn-' + fab);
+  var st   = document.getElementById('sk-st-' + fab);
+  var setS = (m, c) => { if (st) { st.textContent = m; st.style.color = c || 'var(--text3)'; }};
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando...'; }
+  try {
+    setS('Conectando...', 'var(--amber)');
+    await SK_NUTRII.tok();
+    var emp = SK_NUTRII.cfg.emp[fab];
+    setS('Buscando pedidos (empresa ' + emp + ')...', 'var(--blue)');
+    var d = await SK_NUTRII.get('/v1/vendas/pedidos?page=0&codigoEmpresa=' + emp);
+    var orders = SK_NUTRII.arr(d);
+    if (!orders.length) {
+      setS('Tentando sem filtro de empresa...', 'var(--blue)');
+      d = await SK_NUTRII.get('/v1/vendas/pedidos?page=0');
+      orders = SK_NUTRII.arr(d);
+    }
+    setS('Processando ' + orders.length + ' pedidos...', 'var(--blue)');
+    var targetArr   = fab === 'rc' ? state.agendaRc : state.agendaOf;
+    var existingNFs = new Set(targetArr.map(r => String(r.nf || '')).filter(Boolean));
+    var rows = [];
+    for (var p of orders) {
+      var nf  = String(SK_NUTRII.fld(p, 'numero','numeroUnico','numPedido','numeroPedido','id') || '');
+      if (!nf || existingNFs.has(nf)) continue;
+      var solicitante = SK_NUTRII.fld(p, 'nomeCliente','nomeParceiro','nomeFantasia','razaoSocial','cliente');
+      var dtRec  = SK_NUTRII.fld(p, 'dataNegociacao','dataEmissao','dataEntrada','data');
+      var dtPrev = SK_NUTRII.fld(p, 'dataEntrega','dataPrevisaoEntrega','previsaoEntrega','dtEntrega');
+      var op     = SK_NUTRII.fld(p, 'op','ordemProducao','codigoOP','codOP');
+      var itens = [];
+      var raw = p.itens || p.itensPedido || p.items || p.produtos;
+      if (Array.isArray(raw) && raw.length) itens = raw;
+      if (!itens.length) {
+        try {
+          var di = await SK_NUTRII.get('/v1/vendas/pedidos/' + nf + '/itens');
+          if (!di._empty) itens = SK_NUTRII.arr(di);
+        } catch(e) {}
+      }
+      var mkRow = (it, idx) => ({
+        id: Date.now() + Math.random(),
+        nf: nf + (idx ? '-' + idx : ''), op,
+        dt_rec: dtRec, solicitante,
+        cod:     SK_NUTRII.fld(it, 'codigoProduto','codProduto','codigo','codProd'),
+        produto: SK_NUTRII.fld(it, 'nomeProduto','descricaoProduto','descricao','nome','produto'),
+        un:      Number(SK_NUTRII.fld(it, 'pesoLiquido','pesoBruto','pesoUnitario','peso') || 30),
+        qtd:     Number(SK_NUTRII.fld(it, 'quantidade','qtd','sc','qtdSolicitada','qtdPedida') || 0),
+        local:   SK_NUTRII.fld(p, 'localEntrega','cidadeEntrega','cidade','nomeCidade') || solicitante,
+        dt_prev: dtPrev, status: 'A Produzir',
+        obs: SK_NUTRII.fld(p, 'observacao','obs','observacoes') || '',
+        status_log: '', dt_real: '', nf_ent: '', cte: '', frete: 0, despesa: 0
+      });
+      if (itens.length) itens.forEach((it, idx) => rows.push(mkRow(it, idx > 0 ? idx + 1 : 0)));
+      else rows.push(mkRow(p, 0));
+    }
+    if (!rows.length) {
+      setS('Nenhum pedido novo', 'var(--text3)');
+    } else {
+      if (fab === 'rc') { state.agendaRc = state.agendaRc.concat(rows); saveAgenda('rc'); renderAgenda('rc'); syncAgendaToTabs('rc'); }
+      else              { state.agendaOf = state.agendaOf.concat(rows); saveAgenda('of'); renderAgenda('of'); syncAgendaToTabs('of'); }
+      setS('✅ ' + rows.length + ' linhas — ' + new Date().toLocaleTimeString('pt-BR'), 'var(--green)');
+    }
+  } catch(e) {
+    var msg = e.message || String(e);
+    if (/fetch|NetworkError|net::/.test(msg))
+      setS('❌ Proxy offline — cd zfnutrii_crm\\backend && python main.py', '#ef4444');
+    else setS('❌ ' + msg, '#ef4444');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🏭 Sankhya'; }
+  }
+}
+
+// ─── PREÇOS MP — consulta preços das matérias-primas ───────────────
+var SK_MP_BASE = [
+  { cod: 19881,  nome: 'MILHO MOÍDO',           planilha: 0.9075   },
+  { cod: 20554,  nome: 'UREIA PECUÁRIA',         planilha: 3.17625  },
+  { cod: 4267,   nome: 'SAL COMUM',              planilha: 0.77138  },
+  { cod: 20552,  nome: 'CALCÁRIO',               planilha: 0.42653  },
+  { cod: 20497,  nome: 'FARELO DE SOJA',         planilha: 1.90212  },
+  { cod: 2609,   nome: 'AROMA BAUNILHA',         planilha: 14.97375 },
+  { cod: 190023, nome: 'PREMIX PROTEICO',        planilha: 10.7085  },
+  { cod: 20452,  nome: 'PREMIX RAÇÃO',           planilha: 8.1675   },
+  { cod: 4239,   nome: 'ENXOFRE 60%',           planilha: 1.8876   },
+  { cod: 1359,   nome: 'PREMIX MINERAL',         planilha: 9.34725  },
+  { cod: 190022, nome: 'ENXOFRE 99% (MINERAIS)', planilha: 5.445    },
+  { cod: 3297,   nome: 'MONENSINA',              planilha: 74.2154  },
+  { cod: 1370,   nome: 'ENXOFRE 70% (NCO)',      planilha: 3.17625  },
+  { cod: 2915,   nome: 'PREMIX ADENSADO',        planilha: 13.6125  },
+  { cod: 2917,   nome: 'UREIA PROTEGIDA',        planilha: 6.52493  }
+];
+
+function _skPriceFrom(d) {
+  var campos = ['custoUnit','custo','precoUnit','preco','vlrUnit','valorUnitario',
+                'valorUnit','precoCompra','ultimoPreco','precoMedio','vlrUnitario',
+                'vlrCusto','precoCusto','PRECOBASE','Preco_1'];
+  for (var k of campos) {
+    var v = d && d[k];
+    if (v !== undefined && v !== null && v !== '' && !isNaN(parseFloat(v)) && parseFloat(v) > 0)
+      return { val: parseFloat(v), src: k };
+  }
+  return null;
+}
+
+async function syncSankhyaPrecos() {
+  var btn = document.getElementById('sk-mp-btn');
+  var st  = document.getElementById('sk-mp-st');
+  var tb  = document.getElementById('tbody-mp-precos');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando...'; }
+  if (st)  { st.textContent = 'Conectando...'; st.style.color = 'var(--amber)'; }
+  try {
+    await SK_NUTRII.tok();
+    var rows = [];
+    for (var mp of SK_MP_BASE) {
+      if (st) st.textContent = 'Buscando ' + mp.nome + '...';
+      var found = null;
+      // 1. /v1/produtos/{cod}
+      try {
+        var d1 = await SK_NUTRII.get('/v1/produtos/' + mp.cod);
+        if (!d1._empty) {
+          found = _skPriceFrom(d1);
+          if (!found) { var inner = d1.produto || d1.data || d1.item; if (inner) found = _skPriceFrom(inner); }
+          if (found) found.via = 'produto';
+        }
+      } catch(e) {}
+      // 2. /v1/estoque/produtos/{cod}
+      if (!found) {
+        try {
+          var d2 = await SK_NUTRII.get('/v1/estoque/produtos/' + mp.cod);
+          if (!d2._empty) {
+            var ei = SK_NUTRII.arr(d2)[0] || d2;
+            found = _skPriceFrom(ei);
+            if (found) found.via = 'estoque';
+          }
+        } catch(e) {}
+      }
+      // 3. /v1/compras/pedidos?codigoProduto=
+      if (!found) {
+        try {
+          var d3 = await SK_NUTRII.get('/v1/compras/pedidos?page=0&codigoProduto=' + mp.cod);
+          if (!d3._empty) {
+            var arr3 = SK_NUTRII.arr(d3);
+            if (arr3.length) {
+              found = _skPriceFrom(arr3[0]);
+              if (!found) { var it3 = (arr3[0].itens || arr3[0].itensPedido || [])[0]; if (it3) found = _skPriceFrom(it3); }
+              if (found) found.via = 'compra recente';
+            }
+          }
+        } catch(e) {}
+      }
+      rows.push({ ...mp, sk: found });
+    }
+    var fmt = v => 'R$ ' + v.toFixed(4).replace('.', ',');
+    var htmlTr = rows.map(r => {
+      var skVal  = r.sk ? r.sk.val : null;
+      var diff   = skVal != null ? ((skVal - r.planilha) / r.planilha * 100) : null;
+      var color  = diff == null ? 'var(--fg3)' : diff > 2 ? 'var(--red)' : diff < -2 ? 'var(--green)' : 'var(--fg3)';
+      var difStr = diff != null ? '<span style="color:' + color + '">' + (diff>=0?'+':'') + diff.toFixed(1) + '%</span>' : '—';
+      var skStr  = skVal != null ? '<span style="color:' + color + '">' + fmt(skVal) + '</span>' : '<span style="color:var(--fg4)">—</span>';
+      return '<tr><td style="font-family:monospace;font-size:11px">' + r.cod + '</td><td>' + r.nome + '</td>'
+        + '<td style="text-align:right">' + fmt(r.planilha) + '</td>'
+        + '<td style="text-align:right">' + skStr + '</td>'
+        + '<td style="text-align:right">' + difStr + '</td>'
+        + '<td style="font-size:10px;color:var(--fg4)">' + (r.sk ? r.sk.via||r.sk.src : '') + '</td></tr>';
+    }).join('');
+    if (tb) tb.innerHTML = htmlTr;
+    var found_n = rows.filter(r => r.sk).length;
+    if (st) { st.textContent = '✅ ' + found_n + '/' + rows.length + ' preços — ' + new Date().toLocaleTimeString('pt-BR'); st.style.color = found_n > 0 ? 'var(--green)' : 'var(--red)'; }
+  } catch(e) {
+    var msg = e.message || String(e);
+    if (/fetch|NetworkError|net::/.test(msg)) { if (st) { st.textContent = '❌ Proxy offline'; st.style.color = '#ef4444'; } }
+    else { if (st) { st.textContent = '❌ ' + msg; st.style.color = '#ef4444'; } }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Buscar Preços'; }
+  }
+}
+
+// ─── MRP AUTO ────────────────────────────────────────────────────────
+var _mrpFab = 'all';
+function setMrpFab(v, btn) {
+  _mrpFab = v;
+  document.querySelectorAll('#sk-mrp-fab button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+async function syncSankhyaMRP() {
+  var btn = document.getElementById('sk-mrp-btn');
+  var st  = document.getElementById('sk-mrp-st');
+  var tb  = document.getElementById('tbody-mrp');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Calculando...'; }
+  if (st)  { st.textContent = 'Coletando ordens da agenda...'; st.style.color = 'var(--amber)'; }
+  try {
+    await SK_NUTRII.tok();
+
+    // 1. Coletar ordens da agenda filtradas por fábrica e status ativo
+    var activeStatus = ['A Produzir', 'Produzindo', ''];
+    var orders = [];
+    if (_mrpFab !== 'of') orders = orders.concat((state.agendaRc||[]).filter(r => activeStatus.includes(r.status||'')));
+    if (_mrpFab !== 'rc') orders = orders.concat((state.agendaOf||[]).filter(r => activeStatus.includes(r.status||'')));
+
+    if (!orders.length) {
+      if (tb) tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:24px">Nenhuma ordem ativa na agenda. Importe via Sankhya ou adicione manualmente.</td></tr>';
+      if (st) { st.textContent = 'Agenda vazia'; st.style.color = 'var(--fg3)'; }
+      return;
+    }
+
+    // 2. Agrupar por código do produto → total de sacas
+    var prodQtd = {};   // cod → {qtd, nome, un}
+    for (var o of orders) {
+      if (!o.cod) continue;
+      var cod = String(o.cod);
+      if (!prodQtd[cod]) prodQtd[cod] = { qtd: 0, nome: o.produto || cod, un: o.un || 30 };
+      prodQtd[cod].qtd += Number(o.qtd || 0);
+    }
+
+    // 3. Para cada produto, buscar BOM (componentes) no Sankhya
+    if (st) st.textContent = 'Buscando receitas (BOM) no Sankhya...';
+    var ingredNeeded = {};  // codComp → { nome, needed_kg, produtos }
+    var prodCodes = Object.keys(prodQtd);
+
+    for (var pc of prodCodes) {
+      var prod = prodQtd[pc];
+      if (!prod.qtd) continue;
+      var totalKg = prod.qtd * prod.un;
+      if (st) st.textContent = 'BOM de ' + prod.nome + '...';
+      try {
+        var bom = await SK_NUTRII.get('/v1/produtos/' + pc + '/componentes');
+        var comps = SK_NUTRII.arr(bom);  // [{codigoProduto, unidade, quantidade}]
+        if (comps.length) {
+          for (var comp of comps) {
+            var cc = String(comp.codigoProduto || comp.codigo || '');
+            if (!cc) continue;
+            var qtdComp = Number(comp.quantidade || 0);  // quantidade por KG ou por unidade do produto
+            // quantidade no BOM é tipicamente por 1 tonelada (1000 kg) ou por saca
+            // Sankhya: campo 'quantidade' é a quantidade por unidade do produto pai
+            var needed = qtdComp * prod.qtd;  // componente por saca × total de sacas
+            if (!ingredNeeded[cc]) ingredNeeded[cc] = { nome: cc, needed: 0, un: comp.unidade || 'KG', prods: [] };
+            ingredNeeded[cc].needed += needed;
+            ingredNeeded[cc].prods.push(prod.nome);
+          }
+        } else {
+          // Produto sem BOM no Sankhya — registrar para informação
+          if (st) st.textContent = prod.nome + ': sem BOM no Sankhya';
+        }
+      } catch(e) {}
+    }
+
+    if (!Object.keys(ingredNeeded).length) {
+      if (tb) tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg3);padding:24px">'
+        + 'Nenhum ingrediente encontrado. Os produtos da agenda precisam ter estrutura (BOM) cadastrada no Sankhya.</td></tr>';
+      if (st) { st.textContent = 'BOM não encontrado nos produtos da agenda'; st.style.color = 'var(--red)'; }
+      return;
+    }
+
+    // 4. Para cada ingrediente, buscar estoque no Sankhya
+    if (st) st.textContent = 'Verificando estoque...';
+    var empFilter = _mrpFab === 'all' ? '' : ('&codigoEmpresa=' + SK_NUTRII.cfg.emp[_mrpFab]);
+    for (var ic of Object.keys(ingredNeeded)) {
+      try {
+        var es = await SK_NUTRII.get('/v1/estoque/produtos/' + ic);
+        if (!es._empty) {
+          var esi = SK_NUTRII.arr(es);
+          // Somar estoque de todas as empresas relevantes
+          var totalEst = 0;
+          for (var e of esi) {
+            if (_mrpFab === 'all' || String(e.codigoEmpresa) === String(SK_NUTRII.cfg.emp[_mrpFab]))
+              totalEst += Number(e.estoque || 0);
+          }
+          if (!esi.length) {
+            var v = _skPriceFrom(es) || { val: 0 };
+            totalEst = Number(es.estoque || es.quantidade || es.saldo || 0);
+          }
+          ingredNeeded[ic].estoque = totalEst;
+          // Tentar pegar nome do produto
+          var nomeSk = SK_NUTRII.fld(esi[0]||es, 'nomeProduto','descricaoProduto','descricao','nome');
+          if (nomeSk) ingredNeeded[ic].nome = nomeSk;
+        }
+      } catch(e) {}
+      // Tentar buscar nome do produto via /v1/produtos
+      if (!ingredNeeded[ic].nome || ingredNeeded[ic].nome === ic) {
+        try {
+          var dp = await SK_NUTRII.get('/v1/produtos/' + ic);
+          if (!dp._empty) {
+            var n = SK_NUTRII.fld(dp, 'descricao','nomeProduto','nome','descrprod','DESCRPROD');
+            if (n) ingredNeeded[ic].nome = n;
+          }
+        } catch(e) {}
+      }
+    }
+
+    // 5. Renderizar tabela MRP
+    var ingArr = Object.entries(ingredNeeded).map(([cod, v]) => ({
+      cod, nome: v.nome || cod,
+      needed: v.needed, estoque: v.estoque || 0,
+      comprar: Math.max(0, v.needed - (v.estoque || 0)),
+      prods: [...new Set(v.prods)].join(', '), un: v.un
+    })).sort((a,b) => b.comprar - a.comprar);
+
+    var fmtN = n => n.toLocaleString('pt-BR', {maximumFractionDigits: 1});
+    var htmlTr2 = ingArr.map(r => {
+      var buyColor = r.comprar > 0 ? 'color:var(--red);font-weight:700' : 'color:var(--green)';
+      var rowCls   = r.comprar > 0 ? 'need-buy' : 'have-stock';
+      return '<tr class="' + rowCls + '">'
+        + '<td style="font-family:monospace;font-size:11px">' + r.cod + '</td>'
+        + '<td>' + r.nome + '</td>'
+        + '<td style="text-align:right">' + fmtN(r.needed) + ' ' + r.un + '</td>'
+        + '<td style="text-align:right">' + fmtN(r.estoque) + ' ' + r.un + '</td>'
+        + '<td style="text-align:right;' + buyColor + '">' + fmtN(r.comprar) + ' ' + r.un + '</td>'
+        + '<td style="font-size:10px;color:var(--fg4)">' + r.prods.substring(0,60) + '</td>'
+        + '</tr>';
+    }).join('');
+    if (tb) tb.innerHTML = htmlTr2 || '<tr><td colspan="6" style="text-align:center;color:var(--green);padding:16px">✅ Estoque suficiente para toda a produção!</td></tr>';
+    var toBuy = ingArr.filter(r => r.comprar > 0).length;
+    if (st) {
+      st.textContent = '✅ ' + ingArr.length + ' ingredientes | ' + toBuy + ' a comprar — ' + new Date().toLocaleTimeString('pt-BR');
+      st.style.color = toBuy > 0 ? 'var(--red)' : 'var(--green)';
+    }
+  } catch(e) {
+    var msg = e.message || String(e);
+    if (/fetch|NetworkError|net::/.test(msg)) { if (st) { st.textContent = '❌ Proxy offline — python main.py'; st.style.color = '#ef4444'; } }
+    else { if (st) { st.textContent = '❌ ' + msg; st.style.color = '#ef4444'; } }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Calcular MRP'; }
+  }
 }
 
 // ===== INIT =====
