@@ -2068,7 +2068,7 @@ var SK_NUTRII = {
   },
   arr(d) {
     if (Array.isArray(d)) return d;
-    for (var k of ['componentes','estoque','data','content','items','itens','itensPedido','pedidos','rows','result','produtos']) {
+    for (var k of ['pedido','componentes','estoque','data','content','items','itens','itensPedido','pedidos','rows','result','produtos']) {
       if (d && Array.isArray(d[k])) return d[k];
     }
     var found = d && typeof d === 'object' && Object.values(d).find(v => Array.isArray(v));
@@ -2103,9 +2103,9 @@ async function syncSankhya(fab) {
     var existingNFs = new Set(targetArr.map(r => String(r.nf || '')).filter(Boolean));
     var rows = [];
     for (var p of orders) {
-      var nf  = String(SK_NUTRII.fld(p, 'numero','numeroUnico','numPedido','numeroPedido','id') || '');
+      var nf  = String(SK_NUTRII.fld(p, 'numeroPedido','numero','numeroUnico','numPedido','codPedido','id','codigoPedido','nroPedido') || '');
       if (!nf || existingNFs.has(nf)) continue;
-      var solicitante = SK_NUTRII.fld(p, 'nomeCliente','nomeParceiro','nomeFantasia','razaoSocial','cliente');
+      var solicitante = (p.cliente && (p.cliente.nome || p.cliente.razao || p.cliente.nomeFantasia)) || SK_NUTRII.fld(p, 'nomeCliente','nomeParceiro','nomeFantasia','razaoSocial');
       var dtRec  = SK_NUTRII.fld(p, 'dataNegociacao','dataEmissao','dataEntrada','data');
       var dtPrev = SK_NUTRII.fld(p, 'dataEntrega','dataPrevisaoEntrega','previsaoEntrega','dtEntrega');
       var op     = SK_NUTRII.fld(p, 'op','ordemProducao','codigoOP','codOP');
