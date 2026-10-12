@@ -227,6 +227,23 @@ tr.section-hdr td {
 .filter-chip.f-finalizado.active { background: #15803d; }
 .prod-toolbar { display:flex; align-items:center; gap:10px; padding:6px 14px; background:var(--bar-bg); border-bottom:1px solid var(--border); flex-wrap:wrap; }
 .prod-toolbar .info-bar { margin:0; flex:1; border:none; background:none; padding:0; font-size:0.8rem; min-width:180px; }
+/* COMPRAS */
+.compras-header { display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--bar-bg); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.compras-kpi { display:flex; gap:16px; padding:10px 16px; background:var(--bg2); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.compras-kpi-item { display:flex; flex-direction:column; }
+.compras-kpi-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg3); font-weight:600; }
+.compras-kpi-val { font-size:1.15rem; font-weight:700; color:var(--fg); }
+.compras-kpi-val.red { color:var(--red); }
+.compras-kpi-val.green { color:var(--green); }
+.compras-sub-nav { display:flex; gap:0; border-bottom:2px solid var(--border); background:var(--bg2); }
+.compras-sub-btn { padding:8px 18px; font-size:12px; font-weight:700; border:none; border-bottom:2px solid transparent; background:none; color:var(--fg3); cursor:pointer; font-family:inherit; margin-bottom:-2px; transition:all .15s; }
+.compras-sub-btn.active { color:var(--blue); border-bottom-color:var(--blue); background:var(--blue-bg); }
+.compras-sub-btn:hover:not(.active) { color:var(--fg); background:var(--bg3); }
+.compras-zero-row { opacity:.4; }
+.need-buy { background:rgba(239,68,68,.07); }
+.have-stock { background:rgba(34,197,94,.05); }
+.compras-filter-row { display:flex; gap:8px; align-items:center; padding:6px 14px; font-size:11px; color:var(--fg3); font-weight:600; text-transform:uppercase; letter-spacing:.05em; background:var(--bg2); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.compras-filter-row span { margin-right:4px; }
 .status-badge {
   display: inline-block; padding: 3px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer;
@@ -286,6 +303,7 @@ tr.section-hdr td {
   <button class="tab-btn" data-tab="prod_of">🏭 OURO FINO</button>
   <button class="tab-btn" data-tab="aba_p">📋 ABA P (Preços)</button>
   <button class="tab-btn" data-tab="resumo">💰 RESUMO</button>
+  <button class="tab-btn" data-tab="compras">🛒 COMPRAS</button>
   <button class="tab-btn" data-tab="agenda">📅 AGENDA GERAL</button>
   <button class="tab-btn" data-tab="agenda_rc">📅 AGENDA RC</button>
   <button class="tab-btn" data-tab="agenda_of">📅 AGENDA OF</button>
@@ -462,6 +480,27 @@ tr.section-hdr td {
   </div>
 </div>
 
+<!-- COMPRAS -->
+<div class="tab-content" id="tab-compras">
+  <div class="compras-sub-nav">
+    <button class="compras-sub-btn active" onclick="switchComprasView('total',this)">📊 TOTAL GERAL</button>
+    <button class="compras-sub-btn" onclick="switchComprasView('rc',this)">🏭 R. CASCALHEIRA</button>
+    <button class="compras-sub-btn" onclick="switchComprasView('of',this)">🏭 OURO FINO</button>
+  </div>
+  <div class="compras-filter-row">
+    <span>Incluir ordens:</span>
+    <div class="agenda-filters" style="margin:0">
+      <button class="filter-chip f-produzir active" onclick="setComprasFilter('A Produzir',this)">A Produzir</button>
+      <button class="filter-chip f-produzindo" onclick="setComprasFilter('Produzindo',this)">Produzindo</button>
+      <button class="filter-chip f-all" onclick="setComprasFilter('all',this)">Todos Ativos</button>
+    </div>
+  </div>
+  <div class="compras-kpi" id="compras-kpi"></div>
+  <div class="sheet-wrap">
+    <table class="sheet" id="tbl-compras"></table>
+  </div>
+</div>
+
 <!-- MINERAIS -->
 <div class="tab-content" id="tab-minerais">
   <div id="content-minerais"></div>
@@ -521,7 +560,31 @@ const state = {
   state.agenda   = load('zf_agenda',    'agendaNextId');
   state.agendaRc = load('zf_agenda_rc', 'agendaRcNextId');
   state.agendaOf = load('zf_agenda_of', 'agendaOfNextId');
+  // Load ingredient stock from localStorage
+  try {
+    const stockRaw = localStorage.getItem('zf_stock');
+    if (stockRaw) {
+      const stockData = JSON.parse(stockRaw);
+      state.ingredients.forEach(ing => {
+        const normName = ing.name.toUpperCase().replace(/\s+/g,' ').trim();
+        if (stockData[normName] !== undefined) ing.stock = stockData[normName];
+        else ing.stock = 0;
+      });
+    } else {
+      state.ingredients.forEach(ing => { ing.stock = 0; });
+    }
+  } catch(e) { state.ingredients.forEach(ing => { ing.stock = 0; }); }
 })();
+
+function saveStock() {
+  try {
+    const stockData = {};
+    state.ingredients.forEach(ing => {
+      stockData[ing.name.toUpperCase().replace(/\s+/g,' ').trim()] = ing.stock || 0;
+    });
+    localStorage.setItem('zf_stock', JSON.stringify(stockData));
+  } catch(e) {}
+}
 
 // Price lookup: normalize ingredient name → price_c
 function buildIngPriceLookup() {
@@ -738,8 +801,9 @@ function renderAbaP() {
   const tbl = document.getElementById('tbl-aba_p');
   let html = `<thead><tr>
     <th>#</th><th>COD</th><th>INGREDIENTE</th>
-    <th>💰 PREÇO R$/kg (ENTRADA)</th>
-    <th>C/ CRÉDITO PIS/COFINS</th>
+    <th>💰 PREÇO R$/kg</th>
+    <th>C/ CRÉDITO</th>
+    <th>📦 ESTOQUE (KG)</th>
     <th>TOTAL RC (KG)</th><th>TOTAL OF (KG)</th>
     <th>TOTAL GERAL (KG)</th><th>VALOR TOTAL (R$)</th>
   </tr></thead><tbody>`;
@@ -757,10 +821,15 @@ function renderAbaP() {
           onblur="this.parentElement.classList.remove('changed')">
       </td>
       <td class="num calc-cell" id="price_c_${i}">${fmt.n4(priceC)}</td>
-      <td class="num${zc}">${fmt.kg(ing.total_rc)}</td>
-      <td class="num${zc}">${fmt.kg(ing.total_of)}</td>
-      <td class="num${zc}">${fmt.kg(ing.total_kg)}</td>
-      <td class="num${zc}">${ing.total_val ? fmt.price(ing.total_val) : '—'}</td>
+      <td class="editable num">
+        <input type="number" min="0" step="0.1" value="${ing.stock||0}"
+          oninput="updateStock(${i},this.value); this.parentElement.classList.add('changed')"
+          onblur="this.parentElement.classList.remove('changed')">
+      </td>
+      <td class="num${zc}" id="abap_rc_${i}">${fmt.kg(ing.total_rc)}</td>
+      <td class="num${zc}" id="abap_of_${i}">${fmt.kg(ing.total_of)}</td>
+      <td class="num${zc}" id="abap_kg_${i}">${fmt.kg(ing.total_kg)}</td>
+      <td class="num${zc}" id="abap_val_${i}">${ing.total_val ? fmt.price(ing.total_val) : '—'}</td>
     </tr>`;
   });
 
@@ -768,12 +837,41 @@ function renderAbaP() {
 }
 
 function updatePrice(idx, val) {
-  state.ingredients[idx].price = parseFloat(val)||0;
-  const priceC = state.ingredients[idx].price * 0.9075;
-  const el = document.getElementById(`price_c_${idx}`);
-  if (el) el.textContent = fmt.n4(priceC);
-  // Update resumo recalc hint
-  document.getElementById('tbl-resumo').querySelectorAll('.recalc-hint').forEach(e=>e.style.display='');
+  const ing = state.ingredients[idx];
+  ing.price = parseFloat(val)||0;
+  const priceC = ing.price * 0.9075;
+  // Update price credit cell
+  const elC = document.getElementById(`price_c_${idx}`);
+  if (elC) elC.textContent = fmt.n4(priceC);
+  // Recalc this ingredient's total value live
+  ing.total_val = ing.total_kg * ing.price;
+  const elVal = document.getElementById(`abap_val_${idx}`);
+  if (elVal) elVal.textContent = ing.total_val ? fmt.price(ing.total_val) : '—';
+  // Update compras live (price change affects cost totals)
+  if (document.getElementById('tab-compras').classList.contains('active')) {
+    renderCompras(comprasView);
+  }
+  // Auto-recalc Resumo product costs
+  recalcResumo();
+}
+
+function updateStock(idx, val) {
+  state.ingredients[idx].stock = parseFloat(val)||0;
+  saveStock();
+  if (document.getElementById('tab-compras').classList.contains('active')) {
+    renderCompras(comprasView);
+  }
+}
+
+function recalcResumo() {
+  // Recalculate all product costs from current ingredient prices
+  state.resumo.forEach(item => {
+    const cost = calcProductCost(item.produto);
+    if (cost) item.custo = cost;
+  });
+  if (document.getElementById('tab-resumo').classList.contains('active')) {
+    renderResumo();
+  }
 }
 
 // ===== RESUMO TABLE =====
@@ -1317,6 +1415,196 @@ function syncAgendaToTabs(which) {
   renderKPIs();
 }
 
+// ===== COMPRAS ENGINE =====
+let comprasView = 'total';
+let comprasFilter = 'A Produzir';
+
+function setComprasFilter(f, btn) {
+  comprasFilter = f;
+  btn.closest('.agenda-filters').querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCompras(comprasView);
+}
+
+function switchComprasView(view, btn) {
+  comprasView = view;
+  btn.closest('.compras-sub-nav').querySelectorAll('.compras-sub-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCompras(view);
+}
+
+// Calculate ingredient needs from a set of agenda orders
+function calcIngForOrders(agendaKey, statusFilter) {
+  const orders = (state[agendaKey] || []).filter(r => {
+    if (statusFilter === 'all') return r.status !== 'Finalizado';
+    return r.status === statusFilter;
+  });
+
+  // Build product key lookup
+  const prodKeyMap = {};
+  Object.keys(state.products).forEach(key => { prodKeyMap[normSync(key)] = key; });
+  function findProdKey(prodName) {
+    const n = normSync(prodName);
+    if (prodKeyMap[n]) return prodKeyMap[n];
+    for (const [mk, key] of Object.entries(prodKeyMap)) {
+      if (mk.includes(n) || n.includes(mk)) return key;
+    }
+    return null;
+  }
+
+  // Build ingredient index by normalized name
+  const ingByNorm = {};
+  state.ingredients.forEach((ing, i) => { ingByNorm[normSync(ing.name)] = i; });
+
+  const result = {}; // ingIdx -> {name, totalKg, price, stock}
+  orders.forEach(order => {
+    const qty = parseInt(order.qtd) || 0;
+    if (qty <= 0) return;
+    const prodKey = findProdKey(order.produto || '');
+    if (!prodKey) return;
+    const formula = state.products[prodKey];
+    if (!formula || !formula.composition) return;
+    const bags = formula.bags || 33;
+    formula.composition.forEach(comp => {
+      const kgNeeded = (comp.kg_per_1000 / bags) * qty;
+      const ni = normSync(comp.name);
+      // Find ingredient index
+      let ingIdx = ingByNorm[ni];
+      if (ingIdx === undefined) {
+        // Partial match
+        for (const [norm, idx] of Object.entries(ingByNorm)) {
+          if (norm.includes(ni) || ni.includes(norm)) { ingIdx = idx; break; }
+        }
+      }
+      if (ingIdx === undefined) return;
+      if (!result[ingIdx]) {
+        const ing = state.ingredients[ingIdx];
+        result[ingIdx] = { name: ing.name, totalKg: 0, price: ing.price, stock: ing.stock||0, ingIdx };
+      }
+      result[ingIdx].totalKg += kgNeeded;
+    });
+  });
+  return result;
+}
+
+function renderCompras(view) {
+  view = view || comprasView || 'total';
+  comprasView = view;
+
+  // Compute data
+  let rcData = {}, ofData = {};
+  if (view === 'rc' || view === 'total') rcData = calcIngForOrders('agendaRc', comprasFilter);
+  if (view === 'of' || view === 'total') ofData = calcIngForOrders('agendaOf', comprasFilter);
+
+  // Build unified ingredient map
+  const allIdx = new Set([...Object.keys(rcData), ...Object.keys(ofData)].map(Number));
+  const rows = [];
+  allIdx.forEach(idx => {
+    const rc = rcData[idx] || { totalKg: 0 };
+    const of = ofData[idx] || { totalKg: 0 };
+    const ing = state.ingredients[idx];
+    if (!ing) return;
+    const totalNeed = view === 'rc' ? rc.totalKg : view === 'of' ? of.totalKg : rc.totalKg + of.totalKg;
+    if (totalNeed <= 0) return;
+    const stock = ing.stock || 0;
+    const toOrder = Math.max(0, totalNeed - stock);
+    const val = toOrder * ing.price;
+    rows.push({ idx, name: ing.name, rcKg: rc.totalKg, ofKg: of.totalKg, totalNeed, stock, toOrder, price: ing.price, val });
+  });
+  // Sort by value to order (descending)
+  rows.sort((a, b) => b.val - a.val);
+
+  // KPI summary
+  const totalNeedKg = rows.reduce((s, r) => s + r.totalNeed, 0);
+  const totalStockKg = rows.reduce((s, r) => s + Math.min(r.stock, r.totalNeed), 0);
+  const totalOrderKg = rows.reduce((s, r) => s + r.toOrder, 0);
+  const totalVal = rows.reduce((s, r) => s + r.val, 0);
+  const nItens = rows.filter(r => r.toOrder > 0).length;
+
+  const viewLabel = view === 'rc' ? 'R. Cascalheira' : view === 'of' ? 'Ouro Fino' : 'Total Geral (RC + OF)';
+  const filterLabel = comprasFilter === 'all' ? 'Todos Ativos' : comprasFilter;
+
+  document.getElementById('compras-kpi').innerHTML = `
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">Visão</span>
+      <span class="compras-kpi-val">${viewLabel}</span>
+    </div>
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">Ordens</span>
+      <span class="compras-kpi-val">${filterLabel}</span>
+    </div>
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">Total Necessário</span>
+      <span class="compras-kpi-val">${fmt.kg(totalNeedKg)} kg</span>
+    </div>
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">Em Estoque</span>
+      <span class="compras-kpi-val green">${fmt.kg(totalStockKg)} kg</span>
+    </div>
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">🛒 A Comprar</span>
+      <span class="compras-kpi-val red">${fmt.kg(totalOrderKg)} kg</span>
+    </div>
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">💰 Valor Total Compras</span>
+      <span class="compras-kpi-val red">${fmt.price(totalVal)}</span>
+    </div>
+    <div class="compras-kpi-item">
+      <span class="compras-kpi-label">Itens p/ Comprar</span>
+      <span class="compras-kpi-val">${nItens}</span>
+    </div>`;
+
+  // Build table
+  const showRcOf = view === 'total';
+  const colCount = showRcOf ? 8 : 6;
+  let tbl = `<thead><tr>
+    <th>#</th><th>INGREDIENTE</th>
+    ${showRcOf ? '<th>RC (KG)</th><th>OF (KG)</th>' : ''}
+    <th>NECESSÁRIO (KG)</th>
+    <th>📦 ESTOQUE (KG)</th>
+    <th>🛒 A COMPRAR (KG)</th>
+    <th>PREÇO (R$/KG)</th>
+    <th>💰 VALOR (R$)</th>
+  </tr></thead><tbody>`;
+
+  if (rows.length === 0) {
+    tbl += `<tr><td colspan="${colCount}" style="text-align:center;padding:32px;color:var(--fg3);font-style:italic">
+      Nenhuma ordem ativa (${filterLabel}). Lance ordens nas abas Agenda RC ou Agenda OF.
+    </td></tr>`;
+  } else {
+    rows.forEach((r, i) => {
+      const rowCls = r.toOrder > 0 ? 'need-buy' : 'have-stock';
+      const orderCls = r.toOrder > 0 ? 'style="color:var(--red);font-weight:700"' : 'style="color:var(--green);font-weight:700"';
+      tbl += `<tr class="${rowCls}">
+        <td class="num center">${i+1}</td>
+        <td style="font-weight:500">${r.name}</td>
+        ${showRcOf ? `<td class="num">${r.rcKg > 0 ? fmt.kg(r.rcKg) : '—'}</td><td class="num">${r.ofKg > 0 ? fmt.kg(r.ofKg) : '—'}</td>` : ''}
+        <td class="num">${fmt.kg(r.totalNeed)}</td>
+        <td class="editable num">
+          <input type="number" min="0" step="0.1" value="${r.stock}"
+            oninput="updateStock(${r.idx},this.value); this.parentElement.classList.add('changed')"
+            onblur="this.parentElement.classList.remove('changed')">
+        </td>
+        <td class="num" ${orderCls}>${r.toOrder > 0 ? fmt.kg(r.toOrder) : '✅ OK'}</td>
+        <td class="num">${r.price ? 'R$ '+fmt.n4(r.price) : '—'}</td>
+        <td class="num" style="font-weight:600">${r.val > 0 ? fmt.price(r.val) : r.toOrder===0 ? '✅' : '—'}</td>
+      </tr>`;
+    });
+
+    // Totals row
+    tbl += `<tr style="font-weight:700;background:var(--bg3);border-top:2px solid var(--border)">
+      <td colspan="${showRcOf ? 4 : 2}" style="text-align:right;padding-right:8px">TOTAL</td>
+      <td class="num">${fmt.kg(totalNeedKg)}</td>
+      <td class="num">${fmt.kg(totalStockKg)}</td>
+      <td class="num" style="color:var(--red)">${fmt.kg(totalOrderKg)}</td>
+      <td></td>
+      <td class="num" style="color:var(--red)">${fmt.price(totalVal)}</td>
+    </tr>`;
+  }
+
+  document.getElementById('tbl-compras').innerHTML = tbl + '</tbody>';
+}
+
 function recalcIngredientTotals() {
   function normIng(s) {
     return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -1377,6 +1665,7 @@ document.getElementById('tabNav').addEventListener('click', e => {
   if (tab === 'agenda')    renderAgenda('main');
   if (tab === 'agenda_rc') renderAgenda('rc');
   if (tab === 'agenda_of') renderAgenda('of');
+  if (tab === 'compras')   renderCompras(comprasView);
   if (tab === 'minerais' && !document.getElementById('content-minerais').children.length)
     renderProductTab('MINERAIS', 'content-minerais');
   if (tab === 'racoes' && !document.getElementById('content-racoes').children.length)
@@ -1410,6 +1699,8 @@ renderResumo();
 renderAgenda('main');
 renderAgenda('rc');
 renderAgenda('of');
+// Pre-render compras (hidden, rendered on tab click too)
+// renderCompras('total'); // lazy - rendered on tab switch
 </script>
 </body>
 </html>
